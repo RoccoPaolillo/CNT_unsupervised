@@ -1,7 +1,32 @@
 ---
-title: "CNT_unsupervised"
-output: pdf_document
-date: '2022-05-02'
+output: 
+  pdf_document:
+    keep_tex: yes
+    latex_engine: xelatex
+    citation_package: natbib
+toc: false
+fig_caption: yes
+title: "Relocation choice for different homophily preferences: hybrid scenarios for Schelling Model, testing beta secondary proportional"
+author: 
+    |  
+    | Rocco Paolillo
+    | Till Hilmar
+    | Patrick Sachweh
+    |
+    |University of Bremen
+    | 
+    |  
+keywords: "super-diversity, discrete choice, spatial sorting, Schelling"
+date: "`r format(Sys.time(), '%d/%m/%y %H:%M')`"
+bibliography: "references"
+biblio-style: apalike
+
+header-includes: 
+- \usepackage{float}
+- \usepackage{multirow}
+- \usepackage{subcaption}
+- \usepackage[round]{natbib}
+- \usepackage{xfrac}  
 ---
 
 ```{r setup, include=FALSE}
