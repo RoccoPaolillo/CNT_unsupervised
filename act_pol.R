@@ -666,10 +666,15 @@ pol_ti <- plot_itm("POL",11,5)
 
   # coocTerm <- "imprese_zombie"
   
+  term_de <- annotation_hand_de$lemma %!in% c("covid", "verlängern")
+  term_it <- annotation_hand_it$lemma %!in% c("covid")
+  
 
+  for (y in term_de) {
+    
   
   
-      coocTerm <- "nextgen"
+      coocTerm <- y
       
   k <- nrow(dfm_dfcooc)
   ki <- sum(dfm_dfcooc[, coocTerm])
@@ -750,7 +755,7 @@ pol_ti <- plot_itm("POL",11,5)
    par(mai=c(0,0,0,0)) 
   
   # Finaler Plot
-  png(paste0("DEU_POL_",coocTerm,".png"), 600, 600)
+  png(paste0("DEU_POL_",coocTerm ,".png"), 600, 600)
   plot(graphNetwork,              
        layout = layout.fruchterman.reingold,  # Force Directed Layout 
        vertex.label.family = "sans",
@@ -766,8 +771,9 @@ pol_ti <- plot_itm("POL",11,5)
   title(paste0("Germany, POL, ",coocTerm  ),cex.main=2)
  dev.off()
 
- 
-
+  }
+  
+  
 # K diagnostics, data objects derived from running on parallel server ####
  
  # K diagnostic objects run on the server ########################################################################
