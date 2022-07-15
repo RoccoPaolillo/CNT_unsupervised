@@ -256,7 +256,7 @@ save(de_key2round,file="de_key2round.Rdata")
   a <- df_de %>% filter(str_detect(text,
       regex("woche",ignore_case=T)))
   
-df_de$ID <-  paste(df_de$actor,"DE",df_de$user_username,df_de$date,rownames(df_de),sep="_")
+df_de$ID <-  paste(df_de$actor,"DE",df_de$user_username,df_de$date,rownames(df_de),sep=".")
   
 save(df_de,file="df_de_annotated.Rdata")
 load("annotation_de.Rdata")
@@ -388,29 +388,31 @@ docnames(corpus_de) <- corpus_de$ID
 
  }
  # 
- load("TPM/tpmde_tcm30.Rdata")
+ load("TPM/tpmde_pr_act_i_date10.Rdata")
+ load("df_de_annotated.Rdata")
+ load("dfm_de.Rdata")
  
- tb <- labelTopics(stm_m,1:30,7)
+ tb <- labelTopics(stm_m,1:10,7)
  df <- tibble(topic = tb$topicnums,prob = tb$prob,frex = tb$frex)
 
- thoughts2 <- list()
+ thoughts <- list()
  for (i in 1:30) {
   # thg_det <- findThoughts(stm_m, texts = df_de$text,n = 3, topics =i)$docs[[1]]
-   printt = list()
+   thought_text = list()
    dates <- findThoughts(stm_m, texts = df_de$text,n = 3, topics =i)$index[[1]]
    for (n in dates) {
    txx <-  print(c(paste0(" TXT: ",df_de[n,]$text," ACT: ",df_de[n,]$user_username," DATE: ", df_de[n,]$created_at)))
-   printt[[n]] <- txx
-   printtfin <- do.call(rbind.data.frame, printt)
+   thought_text[[n]] <- txx
+   thought_textfin <- do.call(rbind.data.frame, thought_text)
    }
-  thoughts2[[i]] <- printtfin
+  thoughts[[i]] <- thought_textfin
    
  }
- bind_rows(thoughts2)
- thoughtsfin <- do.call(rbind.data.frame, lapply(thoughts2,'[[',1))
- colnames(thoughtsfin) = c("1", "2","3")
+ bind_rows(thoughts)
+ thoughts <- do.call(rbind.data.frame, lapply(thoughts,'[[',1))
+ colnames(thoughts) = c("1", "2","3")
  
-  dffin2 <- cbind(df,thoughtsfin)
+  df <- cbind(df,thoughts)
  
   # thoughts <- list()
   # for (i in 1:30) {
@@ -427,42 +429,88 @@ docnames(corpus_de) <- corpus_de$ID
   
   
   
-  
-  
-  
-  
-  
-  
  
  # # # #
  tidy(stm_m) %>%
    group_by(topic) %>%
-   top_n(10) %>%
+   top_n(7) %>%
    ungroup %>%
-   mutate(term =  reorder(term, beta))  %>%
+   mutate(term = reorder_within(term, beta, topic)) %>%
+   # mutate(term =  reorder(term, beta))  %>%
    mutate(topiclab = paste0("Topic ",topic)) %>%
    mutate(topic2 = factor(topiclab, levels = unique(topiclab[order(topic)]))) %>%
    #  filter(term %in% key_de & beta > 0.002) %>%
-   ggplot(aes(term,beta, fill = topiclab)) +
+   ggplot(aes(beta,term, fill = topiclab)) +
    geom_col(show.legend = FALSE) +
    facet_wrap(~ topic2, scales = "free") +
-   coord_flip() +
-   ylab("Probability words belonging to topic") +
-   xlab("") +
+   scale_y_reordered() +
+  # coord_flip() +
+   xlab("Probability words belonging to topic") +
+   # ylab("") +
    theme_bw() +
    theme(plot.title = element_text(hjust = 0.5),axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
  #
- # # #
- # 
- # load("dfm_de.Rdata")
- # 
- #  plot(topicCorr(stm_m))
- # 
- # 
- # 
- # # gamma
- # 
- # td_gamma <- tidy(stm_m, matrix = "gamma")
+ 
+td_gamma <- tidy(stm_m, matrix = "gamma")
+docs_name <- names(stm_df$documents)
+td_gamma <- cbind(td_gamma,docs_name)
+td_gamma <- td_gamma %>% separate(docs_name,c("actor","country","date","rn"),
+                                  sep=".",convert = TRUE)
+
+td_gamma %>%
+  ggplot(aes(factor(topic), gamma)) +
+  geom_boxplot() +
+  facet_wrap(~ actor) +
+  labs(x = "topic", y = expression(gamma))
+
+
+# to take average of actors
+td_gammaplot <- td_gamma %>% group_by(actor) %>% summarize(mean(gamma))
+colnames(td_gammaplot) <- c("actor","topic","gamma")
+ggplot(td_gammaplot,aes(factor(toppic),gamma)) + geom_point() + facet_wrap(~actor)
+
+plot(stm_m) #<- mean of gamma of all topics, i.e. mean topic proportion (prevalence) for all documents
+td_gammaplottopic <- td_gamma %>% group_by(topic) %>% summarize(mean(gamma))
+
+
+library(ggthemes)
+
+top_terms <- tidy(stm_m) %>%
+  arrange(beta) %>%
+  group_by(topic) %>%
+  top_n(7, beta) %>%
+  arrange(-beta) %>%
+  select(topic, term) %>%
+  summarise(terms = list(term)) %>%
+  mutate(terms = map(terms, paste, collapse = ", ")) %>% 
+  unnest()
+
+gamma_terms <- td_gamma %>%
+  group_by(topic) %>%
+  summarise(gamma = mean(gamma)) %>%
+  arrange(desc(gamma)) %>%
+  left_join(top_terms, by = "topic") %>%
+  mutate(topic = paste0("Topic ", topic),
+         topic = reorder(topic, gamma))
+
+gamma_terms %>%
+  # top_n(20, gamma) %>%
+  ggplot(aes(topic, gamma, label = terms, fill = topic)) +
+  geom_col(show.legend = FALSE) +
+   geom_text(hjust = 0, nudge_y = 0.0005, size = 3,
+          family = "IBMPlexSans") +
+  coord_flip() +
+   scale_y_continuous(expand = c(0,0),
+                     #limits = c(0, 0.09)# , 
+                     labels = scales::percent_format() ) +
+  theme_tufte(base_family = "IBMPlexSans", ticks = FALSE) +
+  theme(plot.title = element_text(size = 25,
+                                  family="IBMPlexSans-Bold"),
+        plot.subtitle = element_text(size = 13)) +
+  labs(x = NULL, y = expression(gamma))
+
+
+
  # 
  # ggplot(td_gamma, aes(gamma, fill = as.factor(topic))) +
  #   geom_histogram(alpha = 0.8, show.legend = FALSE) +
