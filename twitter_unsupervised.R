@@ -9,7 +9,7 @@ library(quanteda)
 library(udpipe)
 library(stopwords)
 library(corpustools)
-# library(quanteda.textstats)
+library(quanteda.textstats)
 # # for data wrangling. very helpful for preparing nodes and edges data
 library(dplyr)
 library(tidyverse)
@@ -20,7 +20,10 @@ library(stringi)
 library(readtext)
 library(parallel)
 library(stringr)
-# library(stm)
+library(widyr)
+library(irlba)
+library(furrr)
+library(stm)
 
  setwd("//watt.bss.bremen-social-sciences.de/rpaolillo/R/twitter_unsupervised/actpol")
 
@@ -113,13 +116,15 @@ df_act20$text <- gsub("’", " ",  df_act20$text)
 df_act20$text <- str_replace_all(df_act20$text,
 regex("http[s]?:/[/]?(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+",
   ignore_case = TRUE)," ")
-df_act20$text <- str_replace_all(df_act20$text,
-  regex("(?<=^|\\s)@[^\\s]+",ignore_case=TRUE)," ")
+df_act20$text <- str_replace_all(df_act20$text, regex("(?<=^|\\s)@[^\\s]+",ignore_case=TRUE)," ")
+# df_act20$text <- str_replace_all(df_act20$text,
+#    regex("[a-zA-Z]*@[a-zA-Z]*",ignore_case=TRUE)," ")
 df_act20[df_act20$lang=="it",]$text <- gsub("á","à",   df_act20[df_act20$lang=="it",]$text)
 df_act20[df_act20$lang=="it",]$text <- gsub("é","è",   df_act20[df_act20$lang=="it",]$text)
 df_act20[df_act20$lang=="it",]$text <- gsub( "í","ì",  df_act20[df_act20$lang=="it",]$text)
 df_act20[df_act20$lang=="it",]$text <- gsub( "ó","ò",  df_act20[df_act20$lang=="it",]$text)
 df_act20[df_act20$lang=="it",]$text <- gsub( "ú","ù",  df_act20[df_act20$lang=="it",]$text)
+df_act20$text <- str_trim(df_act20$text)
 "%nin%" <- Negate("%in%")
 
 # # # annotation keywords policies Germany ####
@@ -131,9 +136,9 @@ df_act20[df_act20$lang=="it",]$text <- gsub( "ú","ù",  df_act20[df_act20$lang=
 
 # check keywords term regex
 
-# df_word <- unique(stringr::str_extract_all(df_act20[df_act20$lang=="de",]$text, 
-#   regex("\\b[:alnum:]*\\-?[:alnum:]*\\-?[:alnum:]*recovery\\-?[:alnum:]*\\-?[:alnum:]*", 
-#         ignore_case = TRUE)))
+ df_word <- unique(stringr::str_extract_all(df_act20[df_act20$lang=="de",]$text, 
+   regex("\\b[:alnum:]*\\-?[:alnum:]*\\-?[:alnum:]* üh \\-?[:alnum:]*\\-?[:alnum:]*", 
+         ignore_case = TRUE)))
 # 
 # 
 
@@ -156,7 +161,7 @@ save(de_key,file="de_key.Rdata")
 save(df_de,file="df_de.Rdata")
 
   a <- df_de %>% filter(str_detect(text,
-     regex("konjunkturprogram",ignore_case=T)))
+     regex("_",ignore_case=T)))
   
 # # # #  check terms mention and if any missing (avoidable)
  de_key <- read.xls("keywords.xls",sheet = "de")[,1]
@@ -208,6 +213,7 @@ save(de_key2round,file="de_key2round.Rdata")
  
 # duplicate text Germany
  load("df_de.Rdata")
+ df_de <- df_de[!duplicated(df_de$tweet_id),]
   corpus_de <- corpus(df_de)
  docnames(corpus_de) <- df_de$ID
  dfm_de <- tokens(corpus_de) %>% dfm()
@@ -240,7 +246,7 @@ save(de_key2round,file="de_key2round.Rdata")
  de_ptn <- read.xls("keywords.xls",sheet = "lemma_de")[,1]
  de_ptn <- paste0("\\b",de_ptn,"\\b")
  de_rpl <- read.xls("keywords.xls",sheet = "lemma_de")[,2]
-
+ 
   df_de$text <- stri_replace_all_regex(
      df_de$text,
     pattern=de_ptn,
@@ -248,32 +254,230 @@ save(de_key2round,file="de_key2round.Rdata")
     vectorize_all=FALSE)
 
   a <- df_de %>% filter(str_detect(text,
-      regex("coronahilf",ignore_case=T)))
+      regex("woche",ignore_case=T)))
+  
+df_de$ID <-  paste(df_de$actor,"DE",df_de$user_username,df_de$date,rownames(df_de),sep="_")
   
 save(df_de,file="df_de_annotated.Rdata")
- 
- # dfm
+load("annotation_de.Rdata")
+a <- annotation_de %>% filter(token %in% de_rpl)
+a <- annotation_de %>% filter(upos == "PRON")
+
+# word embedding ####
+
+load("df_de_annotated.Rdata")
+rem_de <- read.xls("keywords.xls",sheet = "rem_de")[,1]
+de_key <- read.xls("keywords.xls",sheet = "de")[,2]
+we_tx <- df_de %>% filter(actor=="POL") %>% select(c("text"))
+# we_tx$text <- str_replace_all(we_tx$text,"(?<=^|\\s)@[^\\s]+","")
+# we_tx$text <- str_replace_all(we_tx$text,"(?<=^|\\s)https[^\\s]+","")
+# we_tx$text <- str_replace_all(we_tx$text,stopwords_de,"")
+
+we_tx$postID<-row.names(we_tx)
+
+tidy_text <- we_tx %>%
+  select(postID, text) %>%
+  unnest_tokens(word, text) %>%
+  add_count(word) %>%
+  filter(n >= 40) %>% 
+  filter(!word %in% stopwords_de) %>% 
+  filter(!word %in% rem_de) %>% 
+  select(-n)
+
+nested_words <- tidy_text %>%
+  nest(words = c(word))
+
+# install.packages("slider")
+
+
+slide_windows <- function(tbl, window_size) {
+  skipgrams <- slider::slide(
+    tbl, 
+    ~.x, 
+    .after = window_size - 1, 
+    .step = 1, 
+    .complete = TRUE
+  )
   
-# compound_de <- c("in höhe","passende antragsverfahren finden interessierte",
-#            "bundesweit einheitliche plattform","gemeinsame pressemitteilung","mehr informationen",
-#            "bmf finden","mehr informationen","bitte informieren","weitere informationen")
-# rem_de <- c("http*","@*", "bmas-redaktion","|","bitte_informieren","weitere_informationen","€",
-#      "rund", "in_höhe","finden","plattform","details","informationen","unserer_webseite",
-#      "infos","bitte","seit_beginn","gerne","prozent",
-#         "passende_antragsverfahren_finden_interessierte"," + ","gibt",
-#      "grundsätzlich","ende","fällen","bundesweit_einheitliche_plattform",
-#        "gemeinsame_pressemitteilung","bmf_finden","mehr_informationen", "t.co")
+  safe_mutate <- safely(mutate)
+  
+  out <- map2(skipgrams,
+              1:length(skipgrams),
+              ~ safe_mutate(.x, window_id = .y))
+  
+  out %>%
+    transpose() %>%
+    pluck("result") %>%
+    compact() %>%
+    bind_rows()
+}
+
+
+plan(multisession)  ## for parallel processing
+
+tidy_pmi <- nested_words %>%
+  mutate(words = future_map(words, slide_windows, 4L)) %>%
+  unnest(words) %>%
+  unite(window_id, postID, window_id) %>%
+  pairwise_pmi(word, window_id)
+
+tidy_pmi
+
+tidy_word_vectors <- tidy_pmi %>%
+  widely_svd(
+    item1, item2, pmi,
+    nv = 2 #, maxit = 1000
+  )
+
+#pl <- as.data.frame(tidy_word_vectors)
+
+pl_wd <- as.data.frame(tidy_word_vectors) %>% 
+  reshape(idvar = "item1", timevar = "dimension", direction = "wide")
+
+ggplot(pl_wd,aes(pl_wd$value.1,pl_wd$value.2)) + geom_point() +
+  geom_text(aes(label=item1),hjust=0, vjust=0,
+          color= ifelse(pl_wd$item1 %in% unique(de_key),"red","blue")
+  ) + xlab("Dimension1") + ylab("Dimension2") + 
+  ggtitle("Germany, POL") + 
+  theme_bw()
+ggsave("DE_POL_we.jpg",width = 15,height=11)
+
+
+
+
+# TPM ####
+# dfm
+load("df_de_annotated.Rdata")
+df_de <- df_de[!duplicated(df_de$tweet_id),]
+
+compound_de <- read.xls("keywords.xls",sheet = "compound_de")[,1]
+rem_de <- read.xls("keywords.xls",sheet = "rem_de")[,1]
 #                   
-#  dfm_de <-  tokens(corpus_de,
-#                     remove_punct = TRUE, remove_numbers = TRUE,remove_url = TRUE) %>%
-#    tokens_compound(phrase(c(compound_de))) %>%
-#    tokens_remove(c(stopwords("de"),stopwords_de,rem_de,
-#                   annotation_de[annotation_de$upos == "ADP",]$token,
-#                   annotation_de[annotation_de$upos == "PRON",]$token,
-#                   annotation_de[annotation_de$upos == "AUX",]$token,
-#                   annotation_de[annotation_de$upos == "DET",]$token,
-#                   annotation_de[annotation_de$upos == "SCONJ",]$token)) %>%
-#   dfm()
+corpus_de <- corpus(df_de)
+docnames(corpus_de) <- corpus_de$ID
+
+
+
+ dfm_de <-  tokens(corpus_de,
+                    remove_punct = TRUE, remove_numbers = TRUE,remove_url = TRUE) %>%
+   tokens_compound(phrase(c(compound_de))) %>%
+   tokens_remove(c("http*","@*","€","gut",stopwords("de"),stopwords_de,rem_de)) %>%
+  dfm()
+ topfeatures(dfm_de,100)
+ save(dfm_de,file="dfm_de.Rdata")
+ 
+# TPM analysis ####
+ 
+ # keyintop <- list()
+ # for (i in key_de) {
+ #   t <- findTopic(stm_m, i)
+ #   keyintop[[i]] = t
+ # }
+ # 
+ # 
+ labelTopics(stm_m,1,7)
+ thg_de <- findThoughts(stm_m, texts = stm_m$text,n = 3, topics =8)
+ plotQuote(thg_de)
+
+ thg_det <- findThoughts(stm_m, texts = df_de$text,n = 2, topics =1:30)$docs[[1]]
+ plotQuote(thg_det)
+ for(i in c(3097,1843,3135)){
+
+   n <- i
+   print(c(df_de[n,]$text,df_de[n,]$user_name, df_de[n,]$created_at))
+
+ }
+ # 
+ load("TPM/tpmde_tcm30.Rdata")
+ 
+ tb <- labelTopics(stm_m,1:30,7)
+ df <- tibble(topic = tb$topicnums,prob = tb$prob,frex = tb$frex)
+
+ thoughts2 <- list()
+ for (i in 1:30) {
+  # thg_det <- findThoughts(stm_m, texts = df_de$text,n = 3, topics =i)$docs[[1]]
+   printt = list()
+   dates <- findThoughts(stm_m, texts = df_de$text,n = 3, topics =i)$index[[1]]
+   for (n in dates) {
+   txx <-  print(c(paste0(" TXT: ",df_de[n,]$text," ACT: ",df_de[n,]$user_username," DATE: ", df_de[n,]$created_at)))
+   printt[[n]] <- txx
+   printtfin <- do.call(rbind.data.frame, printt)
+   }
+  thoughts2[[i]] <- printtfin
+   
+ }
+ bind_rows(thoughts2)
+ thoughtsfin <- do.call(rbind.data.frame, lapply(thoughts2,'[[',1))
+ colnames(thoughtsfin) = c("1", "2","3")
+ 
+  dffin2 <- cbind(df,thoughtsfin)
+ 
+  # thoughts <- list()
+  # for (i in 1:30) {
+  #   thg_det <- findThoughts(stm_m, texts = df_de$text,n = 3, topics =i)$docs[[1]]
+  #   thg_detf <- as.data.frame(thg_det)
+  #   thg_detf$name <- rownames(thg_detf)
+  #   thg_detf <- tibble(spread(thg_detf, name, thg_det),"topic" = i)
+  #   thoughts[[i]] <- thg_detf
+  # }
+  # bind_rows(thoughts)
+  # thoughts <- do.call(rbind.data.frame, thoughts)
+  # dffin <- cbind(df,thoughts)
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+ 
+ # # # #
+ tidy(stm_m) %>%
+   group_by(topic) %>%
+   top_n(10) %>%
+   ungroup %>%
+   mutate(term =  reorder(term, beta))  %>%
+   mutate(topiclab = paste0("Topic ",topic)) %>%
+   mutate(topic2 = factor(topiclab, levels = unique(topiclab[order(topic)]))) %>%
+   #  filter(term %in% key_de & beta > 0.002) %>%
+   ggplot(aes(term,beta, fill = topiclab)) +
+   geom_col(show.legend = FALSE) +
+   facet_wrap(~ topic2, scales = "free") +
+   coord_flip() +
+   ylab("Probability words belonging to topic") +
+   xlab("") +
+   theme_bw() +
+   theme(plot.title = element_text(hjust = 0.5),axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+ #
+ # # #
+ # 
+ # load("dfm_de.Rdata")
+ # 
+ #  plot(topicCorr(stm_m))
+ # 
+ # 
+ # 
+ # # gamma
+ # 
+ # td_gamma <- tidy(stm_m, matrix = "gamma")
+ # 
+ # ggplot(td_gamma, aes(gamma, fill = as.factor(topic))) +
+ #   geom_histogram(alpha = 0.8, show.legend = FALSE) +
+ #   ggtitle("Count documents per topic, Germany") +
+ #   facet_wrap(~ topic, ncol = 6) 
+ # 
+ # # theta same as gamma
+ # td_theta <- tidy(stm_m, matrix = "theta")
+ # theta_red <- td_theta[td_theta$document%in%c(1:15),] #to first 15 topics
+ #  thetaplot1<-ggplot(theta_red, aes(y=gamma, x=as.factor(topic), fill = as.factor(topic))) +
+ #    geom_bar(stat="identity",alpha = 0.8, show.legend = FALSE) +
+ #      facet_wrap(~ document, ncol = 3) +
+ #    ggtitle("Probability topic per document, Germany") +
+ #     labs(title = "Theta values per document",  y = expression(theta), x = "Topic")
+ # ggsave(file="theta_de.jpg",plot = last_plot())
  
  
  
@@ -282,9 +486,7 @@ save(df_de,file="df_de_annotated.Rdata")
  
  
  
- 
- 
- 
+ #################################################################
  
  
 # 
@@ -998,96 +1200,57 @@ save(df_de,file="df_de_annotated.Rdata")
 #  key_de <- unique(read.xls("annotation_de_keywords.xls")[,2])
 # #
 # # #
-# keyintop <- list()
-# for (i in key_de) {
-#   t <- findTopic(stm_m, i)
-#   keyintop[[i]] = t
-# }
-# 
-# 
-# labelTopics(stm_m,1,7) 
-# thg_de <- findThoughts(stm_m, texts = stm_m$text,n = 6, topics =1)
-# plotQuote(thg_de)
-# 
-# df <- df_actpol[df_actpol$lang == "it",]
-# 
-# for(i in c(2999,1915,1769,499,982,722)){
-#   
-#   n <- i
-#   print(c(df[n,]$text,df[n,]$user_name, df[n,]$created_at))
-#   
-# }
-# 
-# load("tpm_italy30.Rdata")
-# top <- list()
-# for (i in 1:30) {
-#   tb <- labelTopics(stm_m,i,7)
-#   prob <- tb$prob
-#   frex <- tb$frex
-#   name <- i
-#   df <- tibble(i,prob,frex)
-#   top[[i]] = df
-#   
-#   }
-# top
-# 
-# topdf <- bind_rows(top, .id = 'name')
-# topdfa <- topdf[1:30,]
-# topdfa <- topdfa[,-c(1,2)]
-# topic <- 1:30
-# topdfa <- cbind(topic,topdfa)
-# write.csv(topdfa,file="30ita.csv")
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# # # #
-# # # #
-# # # #
-# # # #
-# tidy(stm_m) %>%
-#   group_by(topic) %>%
-#   top_n(10) %>%
-#   ungroup %>%
-#   mutate(term =  reorder(term, beta))  %>%
-#   mutate(topiclab = paste0("Topic ",topic)) %>%
-#   mutate(topic2 = factor(topiclab, levels = unique(topiclab[order(topic)]))) %>%
-#   #  filter(term %in% key_de & beta > 0.002) %>%
-#   ggplot(aes(term,beta, fill = topiclab)) +
-#   geom_col(show.legend = FALSE) +
-#   facet_wrap(~ topic2, scales = "free") +
-#   coord_flip() +
-#   ylab("Probability words belonging to topic") +
-#   xlab("") +
-#   theme_bw() +
-#   theme(plot.title = element_text(hjust = 0.5),axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
-# #
-# # #
-# 
-# load("dfm_de.Rdata")
-# 
-#  plot(topicCorr(stm_m))
-# 
-# 
-# 
-# # gamma
-# 
-# td_gamma <- tidy(stm_m, matrix = "gamma")
-# 
-# ggplot(td_gamma, aes(gamma, fill = as.factor(topic))) +
-#   geom_histogram(alpha = 0.8, show.legend = FALSE) +
-#   ggtitle("Count documents per topic, Germany") +
-#   facet_wrap(~ topic, ncol = 6) 
-# 
-# # theta same as gamma
-# td_theta <- tidy(stm_m, matrix = "theta")
-# theta_red <- td_theta[td_theta$document%in%c(1:15),] #to first 15 topics
-#  thetaplot1<-ggplot(theta_red, aes(y=gamma, x=as.factor(topic), fill = as.factor(topic))) +
-#    geom_bar(stat="identity",alpha = 0.8, show.legend = FALSE) +
-#      facet_wrap(~ document, ncol = 3) +
-#    ggtitle("Probability topic per document, Germany") +
-#     labs(title = "Theta values per document",  y = expression(theta), x = "Topic")
-# ggsave(file="theta_de.jpg",plot = last_plot())
+ 
+ 
+ # Word embedding Chris Bail, disgarded
+ # tidy_skipgrams <- df_de  %>% select(c("ID","text")) %>%
+ #   unnest_tokens(ngram, text, token = "ngrams", n = 3) %>%
+ #   mutate(ngramID = row_number()) %>% 
+ #   tidyr::unite(skipgramID, ID, ngramID) %>%
+ #   unnest_tokens(word, ngram) %>%
+ #    filter(!word %in% stopwords_de) %>%
+ #   filter(!word %in% rem_de)
+ # 
+ # #calculate unigram probabilities (used to normalize skipgram probabilities later)
+ # unigram_probs <- df_de %>%  select(c("ID","text")) %>%
+ #   unnest_tokens(word, text) %>%
+ #   count(word, sort = TRUE) %>%
+ #   mutate(p = n / sum(n))
+ # 
+ # #calculate probabilities
+ # skipgram_probs <- tidy_skipgrams %>%
+ #   pairwise_count(word, skipgramID, diag = TRUE, sort = TRUE) %>%
+ #   mutate(p = n / sum(n))
+ # 
+ # ### normalize probabilities, filter number words
+ # normalized_prob <- skipgram_probs %>%
+ #   filter(n > 20) %>%
+ #   rename(word1 = item1, word2 = item2) %>%
+ #   left_join(unigram_probs %>%
+ #               select(word1 = word, p1 = p),
+ #             by = "word1") %>%
+ #   left_join(unigram_probs %>%
+ #               select(word2 = word, p2 = p),
+ #             by = "word2") %>%
+ #   mutate(p_together = p / p1 / p2)
+ # 
+ # # pmi matrix
+ # pmi_matrix <- normalized_prob %>%
+ #   mutate(pmi = log10(p_together)) %>%
+ #   cast_sparse(word1, word2, pmi)
+ # 
+ # 
+ # pmi_matrix@x[is.na(pmi_matrix@x)] <- 0
+ # pmi_svd <- irlba(pmi_matrix, 2, maxit = 1000)
+ # word_vectors <- pmi_svd$u
+ # rownames(word_vectors) <- rownames(pmi_matrix)
+ # 
+ # forplot<-as.data.frame(word_vectors)
+ # forplot$word<-rownames(forplot)
+ # ggplot(forplot, aes(x=V1, y=V2, label=word))+
+ #   geom_text(aes(label=word),hjust=0, vjust=0, color="blue")+
+ #   theme_minimal()+
+ #   xlab("First Dimension Created by SVD")+
+ #   ylab("Second Dimension Created by SVD")
+ 
+ 
