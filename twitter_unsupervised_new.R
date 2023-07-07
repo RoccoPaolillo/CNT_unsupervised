@@ -94,6 +94,7 @@ for (i in dfdelete$usrnm) {
 df_20_22$text <- str_squish(df_20_22$text)
 
 #
+df_20_22$monthyear <- format(as.Date(df_20_22$created_at),'%m-%Y')
 
 
 #
@@ -102,32 +103,60 @@ df_20_22$text <- str_squish(df_20_22$text)
 # remove words
 rem_dfm <- read.xls("keywords_cnt.xls",sheet = "rem_dfm", encoding = "latin1")[,1]
 rem_dfm <- unique(rem_dfm)
+rem_char <- c("http*","@*","€","+","|","s","faq","=","_","__","~","___")
+
+docvars(corpus(df_20_22))
+
+
+dfm_tot <- tokens(corpus(df_20_22),
+                    remove_punct = TRUE, remove_numbers = TRUE,remove_url = TRUE) %>% 
+  tokens_remove(c("http*","@*","€","+","|","s","faq","=","für","von","l","s","il","la","di",stopwords("en"),stopwords_en,
+                  rem_dfm)) %>%
+  dfm()
+
+dfm_tot[1,]$ID
+dfm_tot[dfm_tot$ID == "MISE_GOV 483703",] 
+
+tmod_wf <- textmodel_wordfish(dfm_tot, dir = c(4051, 309))
 
 ## German dfm
 
 dfm_de_en <- tokens(corpus(df_20_22[df_20_22$country == "Germany",]),
                 remove_punct = TRUE, remove_numbers = TRUE,remove_url = TRUE) %>% 
-  tokens_remove(c("http*","@*","€","+","|","s","faq","=","für","von",stopwords("en"),stopwords_en,
-                  rem_dfm)) %>%
+  tokens_remove(c("für","von",stopwords("en"),stopwords_en,
+                  rem_dfm, rem_char)) %>%
   dfm()
 
 dfm_de_en
 topfeatures(dfm_de_en,50)
-save(dfm_de_en,file="data_new/save_27/dfm_de_en.Rdata")
+save(dfm_de_en,file="data_new/save_29/DE/dfm_de_en.Rdata")
+
+dfm_de_enWS <- tokens(df2022scoresDE,
+                    remove_punct = TRUE, remove_numbers = TRUE,remove_url = TRUE) %>% 
+  tokens_remove(c("für","von",stopwords("en"),stopwords_en,
+                  rem_dfm, rem_char)) %>%
+  dfm()
+
+save(dfm_de_enWS,file="data_new/save_29/DE/dfm_de_enWS.Rdata")
+
+
+
+
+
 
 ## Italian dfm
 
 dfm_it_en <- tokens(corpus(df_20_22[df_20_22$country == "Italy",]),
                  remove_punct = TRUE, remove_numbers = TRUE,remove_url = TRUE) %>% 
-  tokens_remove(c("http*","@*","€","+","|","faq","l","s","il","la","=","di",stopwords("en"),stopwords_en,
-                  rem_dfm)) %>%
+  tokens_remove(c("l","il","la","di",stopwords("en"),stopwords_en,
+                  rem_dfm, rem_char)) %>%
   dfm() 
 
 
 dfm_it_en
 topfeatures(dfm_it_en,50)
 
-save(dfm_it_en,file="data_new/save_27/dfm_it_en.Rdata")
+save(dfm_it_en,file="data_new/save_29/IT/dfm_it_en.Rdata")
 
 
 
@@ -197,8 +226,8 @@ qua <- qua %>% filter(quadrigram %nin% cmpd)
 
 
 ## unique term
-unique(stringr::str_extract_all(df_20_22[df_20_22$selected_2 == 1 & df_20_22$country == "Italy",]$text,
-                                "\\b[:alnum:]*\\-?[:alnum:]*\\-?[:alnum:] sized supplier\\-?[:alnum:]*\\-?[:alnum:]*\\b"))
+unique(stringr::str_extract_all(df_20_22[df_20_22$selected_2 == 1,]$text,
+                                "\\b[:alnum:]*\\-?[:alnum:]*\\-?[:alnum:] next_generation\\-?[:alnum:]*\\-?[:alnum:]*\\b"))
 
 wordouble <- unique(stringr::str_extract_all(df_20_22$text,
                                              "\\b\\-?[:alnum:]* \\-?[:alnum:]* extended\\b"))
@@ -246,6 +275,7 @@ de_policies <- c(
   "recoveryplan",
   "digital_pact",
   "next_generation",
+  "nextgenerationeu",
   "darp",
   "reacteu",
   "esf"
@@ -269,12 +299,14 @@ it_policies <- c(
   "recoveryplan",
   "pnrr",
   "reacteu",
-  "esf"
+  "esf",
+  "pnrr_resources",
+  "pnrr_funds"
 )
 
 
 
-folder <- "data_new/save_27/"  # for output location
+folder <- "data_new/save_29/"  # for output location
 
 # sample
 
@@ -299,13 +331,14 @@ df <- df %>% filter(!word %in% stop_words$word,
 df <- replace(df, df =='', NA)
 df <- df %>% drop_na(word)
 
-df <- df %>% 
+df <- df %>% # filter(country == "Germany") %>%
   filter(!word %in% c(it_policies,de_policies)) %>%
-  count(user_username,country, actor, word,sort = TRUE)
+  count(country,actor, word,sort = TRUE)
+# count(actor, word,sort = TRUE)
 
 total_words <- df %>% 
-  group_by(user_username) %>% 
- group_by(country, actor) %>%
+  group_by(country,actor) %>%
+ # group_by(actor) %>%
   summarize(total = sum(n))
 
 df <- left_join(df, total_words)
@@ -318,14 +351,17 @@ df_tf_idf %>%  arrange(desc(tf_idf))
 
 # df_tf_idf[df_tf_idf$word == "corona",]
 
-df_tf_idf %>%
-  group_by(country, actor) %>%
+df_tf_idf %>% # filter(country == "Germany") %>%
+ group_by(country, actor) %>%
+#  group_by(actor) %>%
   slice_max(tf_idf, n = 10) %>%
-  group_by(segment,tf_idf) %>%
+group_by(country,actor,tf_idf) %>%
+#  group_by(actor,tf_idf) %>%
 #  mutate(labelling = paste0(word,collapse = ", ")) %>%
   # df_tf_idf %>%
   #   group_by(country, monthyear) %>%
   #   slice_max(tf_idf, n = 1) 
+  filter(! word %in% c(it_policies,de_policies,rem_dfm,rem_char)) %>%
   ungroup() %>%
   ggplot(aes(x = reorder(word,tf_idf),y = tf_idf)) + 
   geom_col() +
@@ -337,24 +373,22 @@ df_tf_idf %>%
 
 # Topic extraction
 
-load(paste0(folder,"DE/stm_de25.Rdata")) 
-
+load(paste0(folder,"IT/stm_it25.Rdata")) 
+load(paste0(folder,"IT/dfm_it_en.Rdata")) 
+stm_df_it <- quanteda::convert(dfm_it_en,to = "stm")  
+#
+load(paste0(folder,"DE/stm_de25.Rdata"))
 load(paste0(folder,"DE/dfm_de_en.Rdata")) 
+stm_df_de <- quanteda::convert(dfm_de_en,to = "stm")  
+#
 
+# Extraction for the report ####
+
+numm <- 25
 stm_m <- stm_de25
-stm_m 
-stm_m$settings$call # to check stm
-numm <- 25 # number of topics
-# tpreg <- "cn" # for topic formulation identification
+stm_df <- stm_df_de
 titleplot <- "Germany"
-stm_df <- quanteda::convert(dfm_de_en,to = "stm")  
-policies <- de_policies
-
-# dataframe used for findthoughts (make sure titleplot is the country needed)
-dfb <- df_20_22[df_20_22$country == titleplot & df_20_22$selected_2 == 1,]
-
-
-# Extraction for the report
+dfb <- df_20_22[df_20_22$country == titleplot & df_20_22$selected_2 == 1,] 
 
 sg <- sageLabels(stm_m,10)
 sg_prob <- tibble(topic = 1:numm,sg$marginal$prob) # marginal probability
@@ -389,13 +423,15 @@ thoughts <- cbind(topic = 1:numm,thoughts)
 
 # combining final report pieces and write excel
 long_report <- cbind(sg_prob,sg_frex,sg_prob_pol,sg_prob_ta,sg_prob_tu,sg_frex_pol,sg_frex_ta,sg_frex_tu,thoughts)
-write.csv(long_report,file=paste0(folder,"DE/longrep_",titleplot,numm,".csv"),row.names = F, col.names=T,  sep=";",  fileEncoding = "UTF-8")
+long_report <- cbind(sg_prob,sg_frex,thoughts)
+
+write.csv(long_report,file=paste0(folder,"DE/time/",titleplot,numm,".csv"),row.names = F, col.names=T,  sep=";",  fileEncoding = "UTF-8")
 
 # # Transformative / Restorative
 # 
 # td_beta <- tidy(stm_m) %>% group_by(y.level,topic)  %>% filter(topic == 2) %>% top_n(30, beta)
 
-# Topic Proportion
+# Topic Proportion ####
 
 td_gamma <- tidy(stm_m, matrix = "gamma")
 ID_row <- names(stm_df$documents) # the name of documents gets lost, the row number is reported
@@ -403,14 +439,15 @@ td_gamma <- cbind(td_gamma,ID_row) # Here I map each document to its name via ro
 td_gamma <- cbind(td_gamma,dfb) # merge the gamma matrix with the dataframe via ID, so the variables to sort documents can be used
 
 
-
 # tidy global topic proportion (filter if filtering out labels for it_policies or de_policies)
 
 top_terms <- tidy(stm_m) %>%
+  group_by(topic,term) %>%
+  summarise(beta = mean(beta))  %>%
   arrange(beta) %>%
-  group_by(topic) %>%
+#  group_by(topic) %>%
  # filter(!term %in% policies) %>%   # to filter out either it_policies or de_policies
-  top_n(7, beta) %>%
+  top_n(10, beta) %>%
   arrange(-beta)%>%
   select(topic, term) %>%
   summarise(terms = list(unique(term))) %>%
@@ -425,47 +462,203 @@ top_terms <- tidy(stm_m) %>%
 #   left_join(top_terms, by = "topic") %>%
 #   mutate(gamma = paste0("(",round(gamma,4)*100,"%)")) 
 
-
 gamma_terms <- td_gamma %>%
   group_by(topic) %>%
   summarise(gamma = mean(gamma)) %>%
   arrange(desc(gamma)) %>%
   left_join(top_terms, by = "topic")
+
+
+
+
 # %>%
 #   mutate(topic = paste0("Topic ", topic),
 #          topic = reorder(topic, gamma))
 
-gamma_terms$country <- "Germany"
-gamma_terms$policy <- "transformative"
-gamma_terms[c(4,3,16,20,1,21,25),]$policy<- "restorative"
+gamma_terms$country <- titleplot
+# gamma_terms$policy <- "transformative"
+# gamma_terms[gamma_terms$topic %in% c(1,3,4,5,7,8,9,10,14,15,16,17,18,19,20),]$policy<- "restorative"
 gamma_terms <- gamma_terms[order(-gamma_terms$gamma),]
 gamma_terms$rank <- 1:25
 DE_gammaterms <- gamma_terms
 
-save(DE_gammaterms, file = paste0(folder,"test/DE_gammaterms.Rdata"))
+
+#
+
+#IT_gammaterms <- IT_gammaterms %>% mutate(label = recode(topic,
+ gamma_terms_act <- gamma_terms_act %>% mutate(label = recode(topic,                                                          
+                                                          "1" = "1 dc\nsupports", # brought cisl
+                                                           "2" = "2 pnrr\ninvestments"  , #, "transitions",
+                                                           "3" = "3 funds\nallocations", #*
+                                                           "4" = "4 dc_relaunch", # "life\nquality",
+                                                           "5" = "5 emergency\ncompanies"  , #"emergency\naid", # companies
+                                                           "6" = "6 liquidity",
+                                                           "7" = "7 agribusiness", # "agribusiness" , # "dc\naugust",
+                                                           "8" = "8 tourism", # agorarai
+                                                           "9" = "9 social\nconfrontations",
+                                                           "10" = "10 european\nfunding",
+                                                           "11" = "11 national\nrecovery" , # "sustainability",
+                                                           "12" = "12 active\npolicies", # confederal_secretary, front_page
+                                                           "13" = "13 sustainable\ngrowth", #  # fenealuil #spoke
+                                                           "14" = "14 pa\nsimplification",
+                                                           "15" = "15 pnrr\nimplementation", # confsal check all
+                                                           "16" = "16 dc\nreliefs2", #?governance?
+                                                           "17" = "17 intervention\nuncertainty" , # "restart\ndecree",
+                                                           "18" = "18 contracts",
+                                                           "19" = "19 employment\nequity", #*
+                                                           "20" = "20 south", # credit
+                                                         "21" = "21 funding\naccess",
+                                                         "22" = "22 public\nadministration",
+                                                         "23" = "23 pnrr", #infrastructure
+                                                         "24" = "24 recovery\ninterventions", # thousand
+                                                         "25" = "25 workers" )) #"industry")) 
+
+# IT_gammaterms <- IT_gammaterms %>% mutate(policy = recode(topic,
+# gamma_termsmy <- gamma_termsmy %>% mutate(policy = recode(topic,
+gamma_terms_act <- gamma_terms_act %>% mutate(policy = recode(topic,                                                          
+                                                         "1" = "restorative", # brought cisl
+                                                         "2" = "transformative"  , #, "transitions",
+                                                         "3" = "transformative", #*
+                                                         "4" = "restorative", # "life\nquality",
+                                                         "5" = "restorative"  , #"emergency\naid", # companies
+                                                         "6" = "restorative",
+                                                         "7" = "restorative", # "agribusiness" , # "dc\naugust",
+                                                         "8" = "restorative", # agorarai
+                                                         "9" = "transformative",
+                                                         "10" = "transformative",
+                                                         "11" = "restorative" , # "sustainability",
+                                                         "12" = "restorative", # confederal_secretary, front_page
+                                                         "13" = "transformative", #  # fenealuil #spoke
+                                                         "14" = "transformative",
+                                                         "15" = "transformative", # confsal check all
+                                                         "16" = "restorative", #?governance?
+                                                         "17" = "restorative" , # "restart\ndecree",
+                                                         "18" = "restorative",
+                                                         "19" = "transformative", #*
+                                                         "20" = "transformative", # credit
+                                                         "21" = "restorative",
+                                                         "22" = "restorative",
+                                                         "23" = "transformative", #infrastructure
+                                                         "24" = "restorative", # thousand
+                                                         "25" = "restorative" )) #"industry")) 
+
+
+
+
+# DE_gammaterms <- DE_gammaterms %>% mutate(label = recode(topic,
+gamma_terms_act <- gamma_terms_act %>% mutate(label = recode(topic,
+                                                         "1" = "1 bridging\naid", # intended consequences
+                                                         "2" = "2 stimulus_package", # "stimulus\package",  # "growth",
+                                                         "3" = "3 families",  # "families", #*
+                                                         "4" = "4 work\nsecurity",
+                                                         "5" = "5 corona\naid" , # "business", minimum short_time_allowance
+                                                         "6" = "6 electricity\nprice", # electricity\nprice
+                                                         "7" = "7 extension\naid",
+                                                         "8" = "8 retail\nsector", # "smes", # ver.di_chairman
+                                                         "9" = "9 economic\nboost", 
+                                                         "10" = "10 schools",
+                                                         "11" = "11 european\nfunding",
+                                                         "12" = "12 climate\nprotection",
+                                                         "13" = "13 digitalization",
+                                                         "14" = "14 bridging\naid3",
+                                                         "15" = "15 basic\nsecurity", #creative industry, economic stabilisation_fund
+                                                         "16" = "16 special\ncorona aid",
+                                                         "17" = "17 lockdown" , # "self\nemployed",
+                                                         "18" = "18 economic\nstabilisation",
+                                                         "19" = "19 tax\nreduction", # "recession", 
+                                                         "20" = "20 social\nprotection" , #"lockdown",
+                                                         "21" = "21 insurance\nprotection",
+                                                         "22" = "22 germany\nin eu",
+                                                         "23" = "23 wumms",
+                                                         "24" = "24 gender\nequality", # voluntary shopping, voluntary initiatives
+                                                         "25" = "25 national\neconomy")) 
+
+# DE_gammaterms <- DE_gammaterms %>% mutate(policy = recode(topic,
+# gamma_termsmy <- gamma_termsmy %>% mutate(policy = recode(topic,
+gamma_terms_act <- gamma_terms_act %>% mutate(policy = recode(topic,
+                                                          "1" = "restorative", # brought cisl
+                                                          "2" = "transformative"  , #, "transitions",
+                                                          "3" = "restorative", #*
+                                                          "4" = "restorative", # "life\nquality",
+                                                          "5" = "restorative"  , #"emergency\naid", # companies
+                                                          "6" = "restorative",
+                                                          "7" = "restorative", # "agribusiness" , # "dc\naugust",
+                                                          "8" = "restorative", # agorarai
+                                                          "9" = "transformative",
+                                                          "10" = "restorative",
+                                                          "11" = "transformative" , # "sustainability",
+                                                          "12" = "transformative", # confederal_secretary, front_page
+                                                          "13" = "transformative", #  # fenealuil #spoke
+                                                          "14" = "restorative",
+                                                          "15" = "transformative", # confsal check all
+                                                          "16" = "restorative", #?governance?
+                                                          "17" = "restorative" , # "restart\ndecree",
+                                                          "18" = "restorative",
+                                                          "19" = "restorative", #*
+                                                          "20" = "restorative", # credit
+                                                          "21" = "restorative",
+                                                          "22" = "transformative",
+                                                          "23" = "transformative", #infrastructure
+                                                          "24" = "transformative", # thousand
+                                                          "25" = "restorative" )) #"industry")) 
+
+save(DE_gammaterms, file = paste0(folder,"DE/DE_gammaterms.Rdata"))
+save(IT_gammaterms, file = paste0(folder,"IT/IT_gammaterms.Rdata"))
+
+
 
 # 
-
+df <- DE_gammaterms
 df <- rbind(DE_gammaterms,IT_gammaterms)
 
-df %>% ggplot(aes(-rank, gamma, label = terms, fill = country)) +
- geom_col(show.legend = FALSE) +
-  geom_text(hjust = 0, y = 0.001,# nudge_y = 0.00005, size = 5, # 0.0005
+df %>% # ggplot(aes(-rank, gamma, label = terms, fill = country)) +
+    ggplot(aes(reorder(label,gamma), gamma, fill = policy)) +
+ # ggplot(aes(reorder(label,gamma), gamma, fill = gradient)) +
+ geom_col() +
+  geom_text(aes(label = terms ), hjust = 0, y = 0.001,# nudge_y = 0.00005, size = 5, # 0.0005
             family = "IBMPlexSans") +
+ # scale_fill_manual("gradie) +
   coord_flip() +
   scale_y_continuous(expand = c(0,0),
                      limits = c(0, 0.10) ,
                      labels = scales::percent_format()) +
 facet_wrap(~ country , scales = "free") +
-  theme_tufte(base_family = "IBMPlexSans", ticks = FALSE) +
-  theme(plot.title = element_text(size = 20,
+  # theme_tufte(base_family = "IBMPlexSans", ticks = FALSE) +
+  theme_bw() +
+  theme(legend.position="bottom", plot.title = element_text(size = 20,
                                   family="IBMPlexSans-Bold"),
         plot.subtitle = element_text(size = 13),
-        axis.text.y = element_text(size = 15)) +
-  labs(x = NULL, y = expression(gamma))
+        axis.text.y = element_text(size = 10)) +
+  # labs(x = NULL, y = expression(gamma))
+  labs(x = NULL, y = "Topic Proportion")
+ggsave(paste0(folder,"/figures/","topiproportionDE.jpg"),width = 20, height = 11)
 
 
+# gamma monthyear
 
+
+gamma_termsmy <- td_gamma %>%
+  group_by(topic,monthyear) %>%
+  summarise(gamma = mean(gamma)) %>%
+  arrange(desc(gamma)) %>%
+  left_join(top_terms, by = "topic")
+
+gamma_terms_act$monthyear2 <- factor(gamma_terms_act$monthyear, levels= c("01-2020","02-2020","03-2020","04-2020","05-2020","06-2020",
+# gamma_termsmy$monthyear2 <- factor(gamma_termsmy$monthyear, levels= c("01-2020","02-2020","03-2020","04-2020","05-2020","06-2020",
+                                                                 "07-2020","08-2020","09-2020","10-2020","11-2020","12-2020",
+                                                                 "01-2021","02-2021","03-2021","04-2021","05-2021","06-2021",
+                                                                 "07-2021","08-2021","09-2021","10-2021","11-2021","12-2021",
+                                                                 "01-2022","02-2022","03-2022","04-2022","05-2022","06-2022",
+                                                                 "07-2022","08-2022","09-2022","10-2022","11-2022","12-2022"
+))
+
+
+my <-  gamma_termsmy %>% ggplot(aes(x = monthyear2, y = gamma, fill = as.factor(policy),  color = as.factor(topic))) +
+  geom_bar(position="stack", stat="identity") +
+  geom_text(aes(label = topic),color = "black") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+ggsave(paste0(folder,"/figures/","mytopiproportionIT.jpg"),width = 20, height = 11)
+plotly::ggplotly(my)
 
 
 
@@ -491,9 +684,70 @@ gamma_terms %>%
         axis.text.y = element_text(size = 15)) +
   labs(x = NULL, y = expression(gamma))
 
+# actor differences
 
+
+gamma_terms_act <- td_gamma %>%
+  group_by(topic,actor) %>%
+  summarise(gamma = mean(gamma)) %>%
+  arrange(desc(gamma)) %>%
+  left_join(top_terms, by = "topic")
+
+gamma_terms_act %>% ggplot(aes(x = factor(topic, levels = c(1:25)), y = gamma, fill = as.factor(topic))) +
+  geom_bar(stat="identity") +
+# geom_text(aes(label = topic),color = "black") +
+ theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + 
+  facet_wrap(~ actor)
+plotly::ggplotly(ac)
 
 # ggsave("topic_de.jpg",width = 18,height = 9)
+
+# Actors differences terms
+
+top_terms_act <- tidy(stm_m) %>%
+  rename(actor = y.level) %>% 
+group_by(topic,actor,term) %>%
+   summarise(beta = mean(beta))  %>%
+  arrange(beta) %>%
+  #  group_by(topic) %>%
+ filter(!term %in% de_policies) %>%   # to filter out either it_policies or de_policies
+  top_n(5, beta) %>%
+  arrange(-beta)%>%
+  select(topic, term) %>%
+  summarise(terms = list(unique(term))) %>%
+  mutate(terms = map(terms, paste, collapse = ", ")) %>% 
+  unnest()
+
+gamma_terms_act <- td_gamma %>%
+  group_by(topic,actor) %>%
+  summarise(gamma = mean(gamma)) %>%
+  arrange(desc(gamma)) %>%
+  left_join(top_terms_act, by = c("topic","actor"))
+
+gamma_terms_act %>% # ggplot(aes(-rank, gamma, label = terms, fill = country)) +
+  filter(topic %in% c(18,20,3,19,17,15,2,13,9,22,12,13)) %>%
+  ggplot(aes(reorder(label,gamma), gamma, fill = policy)) +
+  # ggplot(aes(reorder(label,gamma), gamma, fill = gradient)) +
+  geom_col() +
+  geom_text(aes(label = terms ), hjust = 0, y = 0.001,# nudge_y = 0.00005, size = 5, # 0.0005
+            family = "IBMPlexSans") +
+  # scale_fill_manual("gradie) +
+  coord_flip() +
+  scale_y_continuous(expand = c(0,0),
+                     limits = c(0, 0.10) ,
+                     labels = scales::percent_format()) +
+  facet_wrap(~ actor, scales = "free" ) +
+  # theme_tufte(base_family = "IBMPlexSans", ticks = FALSE) +
+  theme_bw() +
+  theme(legend.position="bottom", plot.title = element_text(size = 20,
+                                                            family="IBMPlexSans-Bold"),
+        plot.subtitle = element_text(size = 13),
+        axis.text.y = element_text(size = 10)) +
+  # labs(x = NULL, y = expression(gamma))
+  labs(x = NULL, y = "Topic Proportion")
+
+
+
 
 
 
@@ -548,54 +802,126 @@ gamma_terms %>%
 
 
 
-# SANKEY
-library(networkD3)
-library(dplyr)
+# SANKEY ####
+# library(networkD3)
+# library(dplyr)
+# 
+# tidystm <- tidy(stm_m)  %>% group_by(term,topic) %>%  summarise(beta = mean(beta))
+# # tidystm <- rename(tidystm, actor = y.level)
+# 
+# a <- tidystm %>% filter(term %in% policies) # select policies to label on starting column: Italian or German
+# a$topic <- as.character(a$topic)
+# gamma_terms$terms <- as.character(gamma_terms$terms)
+# 
+# for (i in c(1:numm)){
+#   
+#   a[a$topic == i,]$topic <- paste(a[a$topic == i,]$topic,gamma_terms[gamma_terms$topic == i,]$gamma,":", gamma_terms[gamma_terms$topic == i,]$terms)
+#   
+# }
+# 
+# 
+# # From these flows we need to create a node data frame: it lists every entities involved in the flow
+# nodes <- data.frame(
+#   name=c(as.character(a$term), 
+#          as.character(a$topic)) %>% unique()
+# )
+# 
+# # With networkD3, connection must be provided using id, not using real name like in the links dataframe.. So we need to reformat it.
+# a$IDsource <- match(a$term, nodes$name)-1 
+# a$IDtarget <- match(a$topic, nodes$name)-1
+# 
+# 
+# # Make the Network
+# sankeyNetwork(Links = a, Nodes = nodes,
+#               Source = "IDsource", Target = "IDtarget",
+#               Value = "beta", NodeID = "name",
+#               fontSize=16,
+#               sinksRight =FALSE)
 
-tidystm <- tidy(stm_m)  %>% group_by(term,topic) %>%  summarise(beta = mean(beta))
-# tidystm <- rename(tidystm, actor = y.level)
 
-a <- tidystm %>% filter(term %in% policies) # select policies to label on starting column: Italian or German
-a$topic <- as.character(a$topic)
-gamma_terms$terms <- as.character(gamma_terms$terms)
+# TIME ####
 
-for (i in c(1:numm)){
-  
-  a[a$topic == i,]$topic <- paste(a[a$topic == i,]$topic,gamma_terms[gamma_terms$topic == i,]$gamma,":", gamma_terms[gamma_terms$topic == i,]$terms)
-  
-}
-
-
-# From these flows we need to create a node data frame: it lists every entities involved in the flow
-nodes <- data.frame(
-  name=c(as.character(a$term), 
-         as.character(a$topic)) %>% unique()
-)
-
-# With networkD3, connection must be provided using id, not using real name like in the links dataframe.. So we need to reformat it.
-a$IDsource <- match(a$term, nodes$name)-1 
-a$IDtarget <- match(a$topic, nodes$name)-1
-
-
-# Make the Network
-sankeyNetwork(Links = a, Nodes = nodes,
-              Source = "IDsource", Target = "IDtarget",
-              Value = "beta", NodeID = "name",
-              fontSize=16,
-              sinksRight =FALSE)
-
-
-# TIME
 
 tidystm <- tidy(stm_m)
 tidystm <- rename(tidystm, actor = y.level)
 
 prep <- estimateEffect(1:numm ~ actor * s(datenum), stm_m, metadata = stm_df$meta, uncertainty = "Global")
 
+# Main effect 
+
+effects_time <- get_effects(estimate = prep, variable = "datenum",type = "continuous")
+
+for (i in c(1:numm)) {
+  
+  effects_time %>%  filter(topic == i) %>%
+    # mutate(moderator = as.factor(moderator)) %>%
+    # filter(moderator == "TU") %>%
+    ggplot(aes(x = value, y = proportion
+               #   group = moderator, fill = moderator
+    )) +
+    geom_line() +
+    # geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2)  +
+    scale_x_continuous(breaks = c(18290,18414,18628,18841,18993,19250,19357),
+                       labels = c("18290" = "JAN 2020","18414" = "JUN 2020","18628" = "JAN 2021","18841" = "AUG 2021",
+                                  "18993" = "JAN 2022","19250" = "SEP 2022","19357" = "DEC 2022")) +
+    ggtitle(paste(titleplot, "Topic: ",i)) + 
+    ylab("Expected Proportion") +
+    # geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2)  +
+    # facet_wrap(~ topic_f,labeller=labeller(topic_f = lbs), scales = "free") +  # c("6" ="6: Digital Education","9" = "9: Families"))) +
+    # scale_color_manual(labels = c("Political\nActors","Trade\nAssociations","Trade\nUnions"),
+    #                    values = c("red","green","blue")) +
+    theme_light() +
+    theme(axis.text.x = element_text(vjust = 0.6,angle=45), axis.title.x = element_blank(),
+          strip.background = element_rect(fill="beige"), 
+          strip.text = element_text(color = "black",size = 12),
+          legend.position = "bottom")
+  ggsave(file = paste0(folder,"IT/",titleplot,"main_",i,".jpg"),width = 14, height = 3.5)
+  
+  
+} 
+
+effects_time <- merge(effects_time,DE_gammaterms[,c(1,7)],by = "topic")
+load(paste0(folder,"DE/effects_timeDE.Rdata"))
+
+effects_time %>%  filter(topic %in% c(18,20,3,19,17,2,13,9,22,13,12)) %>%  
+  # mutate(moderator = as.factor(moderator)) %>%
+  # filter(moderator == "TU") %>%
+  ggplot(aes(x = value, y = proportion, color = as.factor(topic)           #   group = moderator, fill = moderator
+  )) +
+# geom_point(aes(shape=as.factor(topic))) +
+  geom_line(aes(linetype = policy)) +
+# geom_text(aes(label = topic)) +
+  # geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2)  +
+  scale_x_continuous(breaks = c(18290,18414,18628,18841,18993,19250,19357),
+                     labels = c("18290" = "JAN 2020","18414" = "JUN 2020","18628" = "JAN 2021","18841" = "AUG 2021",
+                                "18993" = "JAN 2022","19250" = "SEP 2022","19357" = "DEC 2022")) +
+ # ggtitle(paste(titleplot, "Topic: ",i)) + 
+  ylab("Expected Proportion") +
+  # geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2)  +
+  facet_wrap(~ policy) +
+  # facet_wrap(~ topic_f,labeller=labeller(topic_f = lbs), scales = "free") +  # c("6" ="6: Digital Education","9" = "9: Families"))) +
+  # scale_color_manual(labels = c("Political\nActors","Trade\nAssociations","Trade\nUnions"),
+  #                    values = c("red","green","blue")) +
+  theme_light() +
+  theme(axis.text.x = element_text(vjust = 0.6,angle=45), axis.title.x = element_blank(),
+        strip.background = element_rect(fill="beige"), 
+        strip.text = element_text(color = "black",size = 12),
+        legend.position = "bottom")
+
+pl
+plotly::ggplotly(pl)
+save(effects_time,file=paste0(folder,"DE/effects_timeDE.Rdata"))
+
+
+
+
+
+# Interaction
+
 effects_int <- get_effects(estimates = prep,
                               variable = 'datenum',
                               type = 'continuous',
-                              moderator = 'actor',
+                               moderator = 'actor',
                               modval = "POL") %>%
   bind_rows(
     get_effects(estimates = prep,
@@ -620,7 +946,7 @@ for (i in c(1:numm)) {
 tm <-  effects_int %>%  filter(topic == i) %>%
     # mutate(moderator = as.factor(moderator)) %>%
     # filter(moderator == "TU") %>%
-    ggplot(aes(x = value, y = proportion, color = moderator # ,
+    ggplot(aes(x = value, y = proportion,  color = moderator # ,
                #   group = moderator, fill = moderator
     )) +
     geom_line() +
@@ -644,26 +970,26 @@ tm <-  effects_int %>%  filter(topic == i) %>%
   
 
 wd <-  tidystm %>% filter(topic == i) %>%
-    filter(! term %in% policies) %>%
+  #  filter(! term %in% policies) %>%
     group_by(actor) %>%
     arrange(-beta) %>%
-    top_n(7,beta) %>%
+    top_n(12,beta) %>%
     ggplot(aes(reorder(term,beta),beta,fill = actor)) +
     geom_col(show.legend = FALSE) +
   scale_y_continuous(label = scales::percent ) +
   #  scale_y_continuous(breaks = ~ c(min(.x), max(.x))) +
     facet_wrap(~ actor, scales = "free",
-               labeller = labeller(actor = c("TU" = "Trade Unions","TA" = "Trade Associations", "POL" = "Political Actors"))) +         
+               labeller = labeller(actor = c("TU" = "Trade Unions","TA" = "Trade Associations", "POL" = "Political Actors"))) +
     coord_flip() +
    # ggtitle(paste("Topic: ",i)) +
     xlab("") +
     ylab("Probability words per actor") +
     theme(axis.title.x = element_blank()) +
     theme_bw()
-#  ggsave(paste0(folder,"/results/",titleplot,"_wordactor",i,".jpg"),width = 11,height = 5) 
-  
+#  ggsave(paste0(folder,"/results/",titleplot,"_wordactor",i,".jpg"),width = 11,height = 5)
+
 cm <- grid.arrange(tm,wd,ncol = 2)
-ggsave(cm,file = paste0(folder,"DE/25/",titleplot,"comb_",i,".jpg"),width = 14, height = 3.5)
+ggsave(cm,file = paste0(folder,"IT/",titleplot,"comb_",i,".jpg"),width = 14, height = 3.5)
 
 
 } 
@@ -811,5 +1137,91 @@ bi_de <- read.csv("bigrams_de.csv",sep=",") %>% filter(bigram >= 5)
 bde_cmpd <- bi_de %>% filter(bigram %nin% cmpd)
 
 
+# keyness ####
+
+df_kn <- df_20_22 %>% unnest_tokens(word, text, token = stringr::str_split, pattern = " ")
+df_kn$word <- str_remove_all(df_kn$word, "[^#_[:^punct:]]")
+df_kn <- df_kn %>% filter(!word %in% stop_words$word,
+                                        !word %in% rem_dfm,
+                                        !word %in% stopwords("en"), 
+                                        !word %in% stopwords_en)
+#  !word %in% "^[0-9]*$")
+
+df_kn <- replace(df_kn, df_kn=='', NA)
+df_kn <- df_kn %>% drop_na(word)
+
+df_kn %>% 
+  filter(actor == "TA") %>%
+  filter(! word %in% c(it_policies,de_policies)) %>%
+  filter(! word %in% rem_dfm)%>%
+  count(word, country) %>%
+  group_by(word) %>%
+  filter(sum(n) >= 20) %>%
+  ungroup() %>%
+  filter(!word %in% c("pnrr_funds","pnrr_resources","economic_stimulus_package","italy","germany","|",
+                      "corona_measures","corona_pandemic")) %>%
+  pivot_wider(names_from = country, values_from = n, values_fill = 0) %>%
+  mutate_if(is.numeric, list(~(. + 1) / (sum(.) + 1))) %>%
+  mutate(logratio = log(Germany / Italy)) %>%
+  arrange(desc(logratio))  %>%
+  group_by(logratio < 0) %>%
+  slice_max(abs(logratio), n = 14) %>% 
+  ungroup() %>%
+  mutate(word = reorder(word, logratio)) %>%
+  ggplot(aes(word, logratio, fill = logratio < 0)) +
+  geom_col() +
+  coord_flip() +
+  ylab("log odds ratio (Germany/Italy)") +
+  scale_fill_discrete(name = "", labels = c("Germany", "Italy")) +
+  theme_bw() 
 
 
+# wordfish
+
+require(quanteda)
+require(quanteda.textmodels)
+require(quanteda.textplots)
+load(paste0(folder,"DE/tmod_DE.Rdata"))
+
+textplot_scale1d(tmod_DE, margin = "features", 
+                 highlighted = de_policies)
+
+# top_terms_df <- tidy(stm_m) %>%
+#   arrange(beta) %>%
+#   group_by(topic) %>%
+#   # filter(!term %in% policies) %>%   # to filter out either it_policies or de_policies
+#   top_n(10, beta) %>%
+#   arrange(-beta)
+
+term <- tmod_DE$features 
+betawf <- tmod_DE$beta
+dfwd <- data.frame(term,betawf)
+
+top_terms_df <- tidy(stm_m) %>%
+  arrange(beta) %>%
+  group_by(topic,term) %>%
+  summarise(beta = mean(beta)) %>%
+  # filter(!term %in% policies) %>%   # to filter out either it_policies or de_policies
+  top_n(30, beta) %>%
+  arrange(-beta) # %>%
+  # select(topic, term) %>%
+  # summarise(terms = list(unique(term))) %>%
+  # mutate(terms = map(terms, paste, collapse = ", ")) %>% 
+  # unnest()
+
+dfwd2 <- dfwd %>% filter(dfwd$term %in% top_terms_df$term)
+
+dfwd2$quantile <- 0
+dfwd2[dfwd2$betawf >= -6.05469949 & dfwd2$betawf <= -0.86420861,]$quantile <- 1
+dfwd2[dfwd2$betawf > -0.86420861 & dfwd2$betawf <= -0.43808321,]$quantile <- 2
+dfwd2[dfwd2$betawf > -0.43808321 & dfwd2$betawf <= -0.14864741,]$quantile <- 3
+dfwd2[dfwd2$betawf > -0.14864741 & dfwd2$betawf <= 0.02654563,]$quantile <- 4
+
+top_terms_df <-  merge(dfwd2,top_terms_df,by = "term")
+
+top_terms_df2 <- top_terms_df %>% group_by(topic) %>% summarise(gradient = sum(betawf))
+
+top_terms_df <-  merge(top_terms_df,top_terms_df2,by = "topic")
+
+DE_gammaterms <- merge(DE_gammaterms,top_terms_df2,by = "topic")
+save(IT_gammaterms, file = paste0(folder,"IT/IT_gammaterms.Rdata"))
