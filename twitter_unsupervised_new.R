@@ -27,6 +27,7 @@ library(slider)
 library(ggthemes)
 library("stminsights")
 library("gridExtra")
+library("ggpubr")
 
 # "%nin%" <- Negate("%in%")
 
@@ -331,7 +332,7 @@ df <- df %>% filter(!word %in% stop_words$word,
 df <- replace(df, df =='', NA)
 df <- df %>% drop_na(word)
 
-df <- df %>% # filter(country == "Germany") %>%
+df <- df %>%  # filter(country == "Germany") %>%
   filter(!word %in% c(it_policies,de_policies)) %>%
   count(country,actor, word,sort = TRUE)
 # count(actor, word,sort = TRUE)
@@ -348,27 +349,37 @@ df <- left_join(df, total_words)
 df_tf_idf <- df %>% bind_tf_idf(word,segment, n)
 
 df_tf_idf %>%  arrange(desc(tf_idf))
-
+# df_tf_idfDE <- df_tf_idf
 # df_tf_idf[df_tf_idf$word == "corona",]
 
-df_tf_idf %>% # filter(country == "Germany") %>%
- group_by(country, actor) %>%
-#  group_by(actor) %>%
-  slice_max(tf_idf, n = 10) %>%
-group_by(country,actor,tf_idf) %>%
-#  group_by(actor,tf_idf) %>%
-#  mutate(labelling = paste0(word,collapse = ", ")) %>%
-  # df_tf_idf %>%
-  #   group_by(country, monthyear) %>%
-  #   slice_max(tf_idf, n = 1) 
-  filter(! word %in% c(it_policies,de_policies,rem_dfm,rem_char)) %>%
+df_tf_idf <- rbind(df_tf_idfDE,df_tf_idfIT) 
+df_tf_idf <- df_tf_idf %>% mutate(actor = recode(actor,
+                                                 "POL" = "Political Actors",
+                                                 "TA" = "Trade Associations",
+                                                 "TU" = "Trade Unions")) 
+
+df_tf_idf %>% # filter(country == "Italy") %>%
+  group_by(country, actor) %>% 
+#  group_by(segment) %>% 
+  slice_max(tf_idf, n = 8) %>%
+# group_by(country,actor,tf_idf) %>% 
+  filter(! word %in% c(it_policies,de_policies,rem_dfm,rem_char,
+                       "corona_bonus","corona_special_payment")) %>%
   ungroup() %>%
-  ggplot(aes(x = reorder(word,tf_idf),y = tf_idf)) + 
+  ggplot(aes(x = reorder(word,tf_idf),y = tf_idf, fill = actor)) + 
   geom_col() +
   coord_flip() +
-  facet_wrap(~ segment, scales = "free")
-
-
+  facet_wrap(~ country + actor, scales = "free") +
+ # facet_wrap(~ segment , scales = "free") +
+  scale_fill_manual(values = c("Political Actors" = "salmon","Trade Associations" = "seagreen",
+                               "Trade Unions" = "steelblue")) +
+  theme_light() +
+  theme(strip.background = element_rect(fill="beige"), 
+        strip.text = element_text(color = "black",size = 12),
+        axis.title.y = element_blank(),
+        axis.title.x = element_blank()) +
+  guides(fill = FALSE)
+ggsave(file=paste0(folder,"figures/tfidf.jpg"),width = 10,height = 6)
 
 
 # Topic extraction
@@ -485,8 +496,8 @@ DE_gammaterms <- gamma_terms
 
 #
 
-#IT_gammaterms <- IT_gammaterms %>% mutate(label = recode(topic,
- gamma_terms_act <- gamma_terms_act %>% mutate(label = recode(topic,                                                          
+ IT_gammaterms <- IT_gammaterms %>% mutate(label = recode(topic,
+# gamma_terms_act <- gamma_terms_act %>% mutate(label = recode(topic,                                                          
                                                           "1" = "1 dc\nsupports", # brought cisl
                                                            "2" = "2 pnrr\ninvestments"  , #, "transitions",
                                                            "3" = "3 funds\nallocations", #*
@@ -513,9 +524,9 @@ DE_gammaterms <- gamma_terms
                                                          "24" = "24 recovery\ninterventions", # thousand
                                                          "25" = "25 workers" )) #"industry")) 
 
-# IT_gammaterms <- IT_gammaterms %>% mutate(policy = recode(topic,
+ IT_gammaterms <- IT_gammaterms %>% mutate(policy = recode(topic,
 # gamma_termsmy <- gamma_termsmy %>% mutate(policy = recode(topic,
-gamma_terms_act <- gamma_terms_act %>% mutate(policy = recode(topic,                                                          
+#gamma_terms_act <- gamma_terms_act %>% mutate(policy = recode(topic,                                                          
                                                          "1" = "restorative", # brought cisl
                                                          "2" = "transformative"  , #, "transitions",
                                                          "3" = "transformative", #*
@@ -545,8 +556,8 @@ gamma_terms_act <- gamma_terms_act %>% mutate(policy = recode(topic,
 
 
 
-# DE_gammaterms <- DE_gammaterms %>% mutate(label = recode(topic,
-gamma_terms_act <- gamma_terms_act %>% mutate(label = recode(topic,
+ DE_gammaterms <- DE_gammaterms %>% mutate(label = recode(topic,
+#gamma_terms_act <- gamma_terms_act %>% mutate(label = recode(topic,
                                                          "1" = "1 bridging\naid", # intended consequences
                                                          "2" = "2 stimulus_package", # "stimulus\package",  # "growth",
                                                          "3" = "3 families",  # "families", #*
@@ -573,9 +584,9 @@ gamma_terms_act <- gamma_terms_act %>% mutate(label = recode(topic,
                                                          "24" = "24 gender\nequality", # voluntary shopping, voluntary initiatives
                                                          "25" = "25 national\neconomy")) 
 
-# DE_gammaterms <- DE_gammaterms %>% mutate(policy = recode(topic,
+  DE_gammaterms <- DE_gammaterms %>% mutate(policy = recode(topic,
 # gamma_termsmy <- gamma_termsmy %>% mutate(policy = recode(topic,
-gamma_terms_act <- gamma_terms_act %>% mutate(policy = recode(topic,
+#gamma_terms_act <- gamma_terms_act %>% mutate(policy = recode(topic,
                                                           "1" = "restorative", # brought cisl
                                                           "2" = "transformative"  , #, "transitions",
                                                           "3" = "restorative", #*
@@ -608,10 +619,10 @@ save(IT_gammaterms, file = paste0(folder,"IT/IT_gammaterms.Rdata"))
 
 
 # 
-df <- DE_gammaterms
+# df <- DE_gammaterms
 df <- rbind(DE_gammaterms,IT_gammaterms)
 
-df %>% # ggplot(aes(-rank, gamma, label = terms, fill = country)) +
+tpit <- df %>% filter(country == "Italy") %>%
     ggplot(aes(reorder(label,gamma), gamma, fill = policy)) +
  # ggplot(aes(reorder(label,gamma), gamma, fill = gradient)) +
  geom_col() +
@@ -622,7 +633,7 @@ df %>% # ggplot(aes(-rank, gamma, label = terms, fill = country)) +
   scale_y_continuous(expand = c(0,0),
                      limits = c(0, 0.10) ,
                      labels = scales::percent_format()) +
-facet_wrap(~ country , scales = "free") +
+facet_wrap(~ country , scales = "free", dir = "v") +
   # theme_tufte(base_family = "IBMPlexSans", ticks = FALSE) +
   theme_bw() +
   theme(legend.position="bottom", plot.title = element_text(size = 20,
@@ -631,7 +642,8 @@ facet_wrap(~ country , scales = "free") +
         axis.text.y = element_text(size = 10)) +
   # labs(x = NULL, y = expression(gamma))
   labs(x = NULL, y = "Topic Proportion")
-ggsave(paste0(folder,"/figures/","topiproportionDE.jpg"),width = 20, height = 11)
+save(tpit,file = paste0(folder,"IT/tpit.Rdata"))
+# ggsave(paste0(folder,"/figures/","topiproportionDE.jpg"),width = 20, height = 11)
 
 
 # gamma monthyear
@@ -643,26 +655,181 @@ gamma_termsmy <- td_gamma %>%
   arrange(desc(gamma)) %>%
   left_join(top_terms, by = "topic")
 
-gamma_terms_act$monthyear2 <- factor(gamma_terms_act$monthyear, levels= c("01-2020","02-2020","03-2020","04-2020","05-2020","06-2020",
-# gamma_termsmy$monthyear2 <- factor(gamma_termsmy$monthyear, levels= c("01-2020","02-2020","03-2020","04-2020","05-2020","06-2020",
-                                                                 "07-2020","08-2020","09-2020","10-2020","11-2020","12-2020",
-                                                                 "01-2021","02-2021","03-2021","04-2021","05-2021","06-2021",
-                                                                 "07-2021","08-2021","09-2021","10-2021","11-2021","12-2021",
-                                                                 "01-2022","02-2022","03-2022","04-2022","05-2022","06-2022",
-                                                                 "07-2022","08-2022","09-2022","10-2022","11-2022","12-2022"
-))
+
+gamma_termsmy$monthyear <- factor(gamma_termsmy$monthyear, levels= c("01-2020","02-2020","03-2020","04-2020","05-2020","06-2020",
+                                                                     "07-2020","08-2020","09-2020","10-2020","11-2020","12-2020",
+                                                                     "01-2021","02-2021","03-2021","04-2021","05-2021","06-2021",
+                                                                     "07-2021","08-2021","09-2021","10-2021","11-2021","12-2021",
+                                                                     "01-2022","02-2022","03-2022","04-2022","05-2022","06-2022",
+                                                                     "07-2022","08-2022","09-2022","10-2022","11-2022","12-2022"
+))  
+   
+
+IT_gamma_termsmy <- gamma_termsmy %>% mutate(country = "Italy") %>% 
+  mutate(textlabel = topic)
+
+DE_gamma_termsmy <- gamma_termsmy %>% mutate(country = "Germany") %>% 
+  mutate(textlabel = topic)
+
+IT_gamma_termsmy <- IT_gamma_termsmy %>% mutate(label = recode(topic,
+                                                         # gamma_terms_act <- gamma_terms_act %>% mutate(label = recode(topic,                                                          
+                                                         "1" = "1 dc\nsupports", # brought cisl
+                                                         "2" = "2 pnrr\ninvestments"  , #, "transitions",
+                                                         "3" = "3 funds\nallocations", #*
+                                                         "4" = "4 dc_relaunch", # "life\nquality",
+                                                         "5" = "5 emergency\ncompanies"  , #"emergency\naid", # companies
+                                                         "6" = "6 liquidity",
+                                                         "7" = "7 agribusiness", # "agribusiness" , # "dc\naugust",
+                                                         "8" = "8 tourism", # agorarai
+                                                         "9" = "9 social\nconfrontations",
+                                                         "10" = "10 european\nfunding",
+                                                         "11" = "11 national\nrecovery" , # "sustainability",
+                                                         "12" = "12 active\npolicies", # confederal_secretary, front_page
+                                                         "13" = "13 sustainable\ngrowth", #  # fenealuil #spoke
+                                                         "14" = "14 pa\nsimplification",
+                                                         "15" = "15 pnrr\nimplementation", # confsal check all
+                                                         "16" = "16 dc\nreliefs2", #?governance?
+                                                         "17" = "17 intervention\nuncertainty" , # "restart\ndecree",
+                                                         "18" = "18 contracts",
+                                                         "19" = "19 employment\nequity", #*
+                                                         "20" = "20 south", # credit
+                                                         "21" = "21 funding\naccess",
+                                                         "22" = "22 public\nadministration",
+                                                         "23" = "23 pnrr", #infrastructure
+                                                         "24" = "24 recovery\ninterventions", # thousand
+                                                         "25" = "25 workers" )) #"industry")) 
+
+IT_gamma_termsmy <- IT_gamma_termsmy %>% mutate(policy = recode(topic,
+                                                          # gamma_termsmy <- gamma_termsmy %>% mutate(policy = recode(topic,
+                                                          #gamma_terms_act <- gamma_terms_act %>% mutate(policy = recode(topic,                                                          
+                                                          "1" = "restorative", # brought cisl
+                                                          "2" = "transformative"  , #, "transitions",
+                                                          "3" = "transformative", #*
+                                                          "4" = "restorative", # "life\nquality",
+                                                          "5" = "restorative"  , #"emergency\naid", # companies
+                                                          "6" = "restorative",
+                                                          "7" = "restorative", # "agribusiness" , # "dc\naugust",
+                                                          "8" = "restorative", # agorarai
+                                                          "9" = "transformative",
+                                                          "10" = "transformative",
+                                                          "11" = "restorative" , # "sustainability",
+                                                          "12" = "restorative", # confederal_secretary, front_page
+                                                          "13" = "transformative", #  # fenealuil #spoke
+                                                          "14" = "transformative",
+                                                          "15" = "transformative", # confsal check all
+                                                          "16" = "restorative", #?governance?
+                                                          "17" = "restorative" , # "restart\ndecree",
+                                                          "18" = "restorative",
+                                                          "19" = "transformative", #*
+                                                          "20" = "transformative", # credit
+                                                          "21" = "restorative",
+                                                          "22" = "restorative",
+                                                          "23" = "transformative", #infrastructure
+                                                          "24" = "restorative", # thousand
+                                                          "25" = "restorative" )) #"industry")) 
 
 
-my <-  gamma_termsmy %>% ggplot(aes(x = monthyear2, y = gamma, fill = as.factor(policy),  color = as.factor(topic))) +
-  geom_bar(position="stack", stat="identity") +
-  geom_text(aes(label = topic),color = "black") +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
-ggsave(paste0(folder,"/figures/","mytopiproportionIT.jpg"),width = 20, height = 11)
-plotly::ggplotly(my)
+
+
+DE_gamma_termsmy <- DE_gamma_termsmy %>% mutate(label = recode(topic,
+                                                         #gamma_terms_act <- gamma_terms_act %>% mutate(label = recode(topic,
+                                                         "1" = "1 bridging\naid", # intended consequences
+                                                         "2" = "2 stimulus_package", # "stimulus\package",  # "growth",
+                                                         "3" = "3 families",  # "families", #*
+                                                         "4" = "4 work\nsecurity",
+                                                         "5" = "5 corona\naid" , # "business", minimum short_time_allowance
+                                                         "6" = "6 electricity\nprice", # electricity\nprice
+                                                         "7" = "7 extension\naid",
+                                                         "8" = "8 retail\nsector", # "smes", # ver.di_chairman
+                                                         "9" = "9 economic\nboost", 
+                                                         "10" = "10 schools",
+                                                         "11" = "11 european\nfunding",
+                                                         "12" = "12 climate\nprotection",
+                                                         "13" = "13 digitalization",
+                                                         "14" = "14 bridging\naid3",
+                                                         "15" = "15 basic\nsecurity", #creative industry, economic stabilisation_fund
+                                                         "16" = "16 special\ncorona aid",
+                                                         "17" = "17 lockdown" , # "self\nemployed",
+                                                         "18" = "18 economic\nstabilisation",
+                                                         "19" = "19 tax\nreduction", # "recession", 
+                                                         "20" = "20 social\nprotection" , #"lockdown",
+                                                         "21" = "21 insurance\nprotection",
+                                                         "22" = "22 germany\nin eu",
+                                                         "23" = "23 wumms",
+                                                         "24" = "24 gender\nequality", # voluntary shopping, voluntary initiatives
+                                                         "25" = "25 national\neconomy")) 
+
+DE_gamma_termsmy <- DE_gamma_termsmy %>% mutate(policy = recode(topic,
+                                                          # gamma_termsmy <- gamma_termsmy %>% mutate(policy = recode(topic,
+                                                          #gamma_terms_act <- gamma_terms_act %>% mutate(policy = recode(topic,
+                                                          "1" = "restorative", # brought cisl
+                                                          "2" = "transformative"  , #, "transitions",
+                                                          "3" = "restorative", #*
+                                                          "4" = "restorative", # "life\nquality",
+                                                          "5" = "restorative"  , #"emergency\naid", # companies
+                                                          "6" = "restorative",
+                                                          "7" = "restorative", # "agribusiness" , # "dc\naugust",
+                                                          "8" = "restorative", # agorarai
+                                                          "9" = "transformative",
+                                                          "10" = "restorative",
+                                                          "11" = "transformative" , # "sustainability",
+                                                          "12" = "transformative", # confederal_secretary, front_page
+                                                          "13" = "transformative", #  # fenealuil #spoke
+                                                          "14" = "restorative",
+                                                          "15" = "transformative", # confsal check all
+                                                          "16" = "restorative", #?governance?
+                                                          "17" = "restorative" , # "restart\ndecree",
+                                                          "18" = "restorative",
+                                                          "19" = "restorative", #*
+                                                          "20" = "restorative", # credit
+                                                          "21" = "restorative",
+                                                          "22" = "transformative",
+                                                          "23" = "transformative", #infrastructure
+                                                          "24" = "transformative", # thousand
+                                                          "25" = "restorative" )) #"industry")) 
 
 
 
 
+
+
+
+
+
+
+# gamma_terms_act$monthyear2 <- factor(gamma_terms_act$monthyear, levels= c("01-2020","02-2020","03-2020","04-2020","05-2020","06-2020",
+
+ 
+ a <- DE_gamma_termsmy %>% mutate(country = "Germany") %>% 
+   group_by(monthyear) %>%
+   top_n(4,gamma) %>%
+   mutate(textlabel = topic) %>%
+   mutate(sel = paste0(topic,monthyear))
+ 
+ DE_gamma_termsmy <- DE_gamma_termsmy %>% 
+   mutate(sel = paste0(topic,monthyear)) %>%
+   mutate(textlabel  = ifelse(sel %in% a$sel,topic,""))
+
+tptmde <- DE_gamma_termsmy %>% 
+  ggplot(aes(x = monthyear, y = gamma, 
+             fill = as.factor(policy) # ,
+                               #  color = as.factor(policy) 
+             )) +
+  geom_col( color = "black") + #, stat="identity") +
+ # geom_text(label = ifelse(IT_gamma_termsmy$gamma >= 0.13856680,IT_gamma_termsmy$topic,""), color = "black",
+ #           position = position_stack(vjust = 0.5 )) +
+ geom_text(aes(label = textlabel), color = "black", position = position_stack(vjust = 0.5 )) +
+  labs(x = "Time", y = "Topic Proportion") + 
+# scale_fill_manual(values = ifelse(IT_gamma_termsmy$policy == "restorative","cyan","pink")) +
+     facet_wrap(~ country) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.3, hjust=1),legend.position = "none")
+save(tptmde,file=paste0(folder,"DE/tptmde.Rdata"))
+
+load(paste0(folder,"DE/tpde.Rdata"))
+
+ggarrange(tpit,tpde,tptmit,tptmde, common.legend = TRUE, legend = "bottom")
+ggsave( paste0(folder,"figures/tp1.jpg"),width = 22,height = 18)
 
 
 #
@@ -691,14 +858,158 @@ gamma_terms_act <- td_gamma %>%
   group_by(topic,actor) %>%
   summarise(gamma = mean(gamma)) %>%
   arrange(desc(gamma)) %>%
-  left_join(top_terms, by = "topic")
+  left_join(top_terms, by = "topic") %>%
+  mutate(actor = recode(actor,
+                        "POL" = "Political Actors",
+                        "TA" = "Trade Associations",
+                        "TU" = "Trade Unions")) %>%
+  mutate(country = "Italy")
 
-gamma_terms_act %>% ggplot(aes(x = factor(topic, levels = c(1:25)), y = gamma, fill = as.factor(topic))) +
+IT_gamma_termsact <- gamma_terms_act
+
+IT_gamma_termsact <- IT_gamma_termsact %>% mutate(label = recode(topic,
+                                                               # gamma_terms_act <- gamma_terms_act %>% mutate(label = recode(topic,                                                          
+                                                               "1" = "1 dc\nsupports", # brought cisl
+                                                               "2" = "2 pnrr\ninvestments"  , #, "transitions",
+                                                               "3" = "3 funds\nallocations", #*
+                                                               "4" = "4 dc_relaunch", # "life\nquality",
+                                                               "5" = "5 emergency\ncompanies"  , #"emergency\naid", # companies
+                                                               "6" = "6 liquidity",
+                                                               "7" = "7 agribusiness", # "agribusiness" , # "dc\naugust",
+                                                               "8" = "8 tourism", # agorarai
+                                                               "9" = "9 social\nconfrontations",
+                                                               "10" = "10 european\nfunding",
+                                                               "11" = "11 national\nrecovery" , # "sustainability",
+                                                               "12" = "12 active\npolicies", # confederal_secretary, front_page
+                                                               "13" = "13 sustainable\ngrowth", #  # fenealuil #spoke
+                                                               "14" = "14 pa\nsimplification",
+                                                               "15" = "15 pnrr\nimplementation", # confsal check all
+                                                               "16" = "16 dc\nreliefs2", #?governance?
+                                                               "17" = "17 intervention\nuncertainty" , # "restart\ndecree",
+                                                               "18" = "18 contracts",
+                                                               "19" = "19 employment\nequity", #*
+                                                               "20" = "20 south", # credit
+                                                               "21" = "21 funding\naccess",
+                                                               "22" = "22 public\nadministration",
+                                                               "23" = "23 pnrr", #infrastructure
+                                                               "24" = "24 recovery\ninterventions", # thousand
+                                                               "25" = "25 workers" )) #"industry")) 
+
+IT_gamma_termsact <- IT_gamma_termsact %>% mutate(policy = recode(topic,
+                                                                # gamma_termsmy <- gamma_termsmy %>% mutate(policy = recode(topic,
+                                                                #gamma_terms_act <- gamma_terms_act %>% mutate(policy = recode(topic,                                                          
+                                                                "1" = "restorative", # brought cisl
+                                                                "2" = "transformative"  , #, "transitions",
+                                                                "3" = "transformative", #*
+                                                                "4" = "restorative", # "life\nquality",
+                                                                "5" = "restorative"  , #"emergency\naid", # companies
+                                                                "6" = "restorative",
+                                                                "7" = "restorative", # "agribusiness" , # "dc\naugust",
+                                                                "8" = "restorative", # agorarai
+                                                                "9" = "transformative",
+                                                                "10" = "transformative",
+                                                                "11" = "restorative" , # "sustainability",
+                                                                "12" = "restorative", # confederal_secretary, front_page
+                                                                "13" = "transformative", #  # fenealuil #spoke
+                                                                "14" = "transformative",
+                                                                "15" = "transformative", # confsal check all
+                                                                "16" = "restorative", #?governance?
+                                                                "17" = "restorative" , # "restart\ndecree",
+                                                                "18" = "restorative",
+                                                                "19" = "transformative", #*
+                                                                "20" = "transformative", # credit
+                                                                "21" = "restorative",
+                                                                "22" = "restorative",
+                                                                "23" = "transformative", #infrastructure
+                                                                "24" = "restorative", # thousand
+                                                                "25" = "restorative" )) #"industry")) 
+
+
+DE_gamma_termsact <- DE_gamma_termsact %>% mutate(label = recode(topic,
+                                                               #gamma_terms_act <- gamma_terms_act %>% mutate(label = recode(topic,
+                                                               "1" = "1 bridging\naid", # intended consequences
+                                                               "2" = "2 stimulus_package", # "stimulus\package",  # "growth",
+                                                               "3" = "3 families",  # "families", #*
+                                                               "4" = "4 work\nsecurity",
+                                                               "5" = "5 corona\naid" , # "business", minimum short_time_allowance
+                                                               "6" = "6 electricity\nprice", # electricity\nprice
+                                                               "7" = "7 extension\naid",
+                                                               "8" = "8 retail\nsector", # "smes", # ver.di_chairman
+                                                               "9" = "9 economic\nboost", 
+                                                               "10" = "10 schools",
+                                                               "11" = "11 european\nfunding",
+                                                               "12" = "12 climate\nprotection",
+                                                               "13" = "13 digitalization",
+                                                               "14" = "14 bridging\naid3",
+                                                               "15" = "15 basic\nsecurity", #creative industry, economic stabilisation_fund
+                                                               "16" = "16 special\ncorona aid",
+                                                               "17" = "17 lockdown" , # "self\nemployed",
+                                                               "18" = "18 economic\nstabilisation",
+                                                               "19" = "19 tax\nreduction", # "recession", 
+                                                               "20" = "20 social\nprotection" , #"lockdown",
+                                                               "21" = "21 insurance\nprotection",
+                                                               "22" = "22 germany\nin eu",
+                                                               "23" = "23 wumms",
+                                                               "24" = "24 gender\nequality", # voluntary shopping, voluntary initiatives
+                                                               "25" = "25 national\neconomy")) 
+
+DE_gamma_termsact <- DE_gamma_termsact %>% mutate(policy = recode(topic,
+                                                                # gamma_termsmy <- gamma_termsmy %>% mutate(policy = recode(topic,
+                                                                #gamma_terms_act <- gamma_terms_act %>% mutate(policy = recode(topic,
+                                                                "1" = "restorative", # brought cisl
+                                                                "2" = "transformative"  , #, "transitions",
+                                                                "3" = "restorative", #*
+                                                                "4" = "restorative", # "life\nquality",
+                                                                "5" = "restorative"  , #"emergency\naid", # companies
+                                                                "6" = "restorative",
+                                                                "7" = "restorative", # "agribusiness" , # "dc\naugust",
+                                                                "8" = "restorative", # agorarai
+                                                                "9" = "transformative",
+                                                                "10" = "restorative",
+                                                                "11" = "transformative" , # "sustainability",
+                                                                "12" = "transformative", # confederal_secretary, front_page
+                                                                "13" = "transformative", #  # fenealuil #spoke
+                                                                "14" = "restorative",
+                                                                "15" = "transformative", # confsal check all
+                                                                "16" = "restorative", #?governance?
+                                                                "17" = "restorative" , # "restart\ndecree",
+                                                                "18" = "restorative",
+                                                                "19" = "restorative", #*
+                                                                "20" = "restorative", # credit
+                                                                "21" = "restorative",
+                                                                "22" = "transformative",
+                                                                "23" = "transformative", #infrastructure
+                                                                "24" = "transformative", # thousand
+                                                                "25" = "restorative" )) #"industry")) 
+
+
+df <- rbind(IT_gamma_termsact,DE_gamma_termsact)
+
+df %>%
+  # group_by(actor,country) %>%
+  # ungroup() %>%
+ # mutate(topic  = reorder_within(topic,-gamma,actor)) %>%
+ # ggplot(aes(x = factor(topic,c(25:1)), y = gamma, 
+             ggplot(aes(x = reorder_within(topic,gamma,actor), y = gamma, 
+                               fill = as.factor(policy))) +
   geom_bar(stat="identity") +
-# geom_text(aes(label = topic),color = "black") +
- theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + 
-  facet_wrap(~ actor)
-plotly::ggplotly(ac)
+  labs(x = "Topics",  y = "Topic proportion") + 
+# geom_text(aes(label = topic),color = "black") + 
+  facet_wrap(~ country + actor , scales = "free_y") +
+  scale_x_reordered() +
+  coord_flip() +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),legend.position = "none") 
+ggsave(file=paste0(folder,"figures/actor_both.jpg"),width = 8,height = 7)
+
+
+DE_gamma_termsact %>%
+  ggplot(aes(x = actor, y = gamma, fill = as.factor(policy))) +
+  geom_col(color = "black") +
+ coord_flip() +
+  geom_text(aes(label = topic), color = "black", position = position_stack(vjust = 0.5 )) 
+
+
 
 # ggsave("topic_de.jpg",width = 18,height = 9)
 
@@ -722,12 +1033,141 @@ gamma_terms_act <- td_gamma %>%
   group_by(topic,actor) %>%
   summarise(gamma = mean(gamma)) %>%
   arrange(desc(gamma)) %>%
-  left_join(top_terms_act, by = c("topic","actor"))
+  left_join(top_terms_act, by = c("topic","actor")) %>%
+  mutate(actor = recode(actor,
+                        "POL" = "Political Actors",
+                        "TA" = "Trade Associations",
+                        "TU" = "Trade Unions")) # %>%
+  
 
-gamma_terms_act %>% # ggplot(aes(-rank, gamma, label = terms, fill = country)) +
-  filter(topic %in% c(18,20,3,19,17,15,2,13,9,22,12,13)) %>%
-  ggplot(aes(reorder(label,gamma), gamma, fill = policy)) +
+IT_gamma_termsact <- gamma_terms_act %>% mutate(country = "Italy")
+DE_gamma_termsact <- gamma_terms_act %>% mutate(country = "Germany")
+
+IT_gamma_termsact <- IT_gamma_termsact %>% mutate(label = recode(topic,                                                          
+                                                             "1" = "1 dc\nsupports", # brought cisl
+                                                             "2" = "2 pnrr\ninvestments"  , #, "transitions",
+                                                             "3" = "3 funds\nallocations", #*
+                                                             "4" = "4 dc_relaunch", # "life\nquality",
+                                                             "5" = "5 emergency\ncompanies"  , #"emergency\naid", # companies
+                                                             "6" = "6 liquidity",
+                                                             "7" = "7 agribusiness", # "agribusiness" , # "dc\naugust",
+                                                             "8" = "8 tourism", # agorarai
+                                                             "9" = "9 social\nconfrontations",
+                                                             "10" = "10 european\nfunding",
+                                                             "11" = "11 national\nrecovery" , # "sustainability",
+                                                             "12" = "12 active\npolicies", # confederal_secretary, front_page
+                                                             "13" = "13 sustainable\ngrowth", #  # fenealuil #spoke
+                                                             "14" = "14 pa\nsimplification",
+                                                             "15" = "15 pnrr\nimplementation", # confsal check all
+                                                             "16" = "16 dc\nreliefs2", #?governance?
+                                                             "17" = "17 intervention\nuncertainty" , # "restart\ndecree",
+                                                             "18" = "18 contracts",
+                                                             "19" = "19 employment\nequity", #*
+                                                             "20" = "20 south", # credit
+                                                             "21" = "21 funding\naccess",
+                                                             "22" = "22 public\nadministration",
+                                                             "23" = "23 pnrr", #infrastructure
+                                                             "24" = "24 recovery\ninterventions", # thousand
+                                                             "25" = "25 workers" )) #"industry")) 
+
+# IT_gammaterms <- IT_gammaterms %>% mutate(policy = recode(topic,
+# gamma_termsmy <- gamma_termsmy %>% mutate(policy = recode(topic,
+IT_gamma_termsact <- IT_gamma_termsact %>% mutate(policy = recode(topic,                                                          
+                                                              "1" = "restorative", # brought cisl
+                                                              "2" = "transformative"  , #, "transitions",
+                                                              "3" = "transformative", #*
+                                                              "4" = "restorative", # "life\nquality",
+                                                              "5" = "restorative"  , #"emergency\naid", # companies
+                                                              "6" = "restorative",
+                                                              "7" = "restorative", # "agribusiness" , # "dc\naugust",
+                                                              "8" = "restorative", # agorarai
+                                                              "9" = "transformative",
+                                                              "10" = "transformative",
+                                                              "11" = "restorative" , # "sustainability",
+                                                              "12" = "restorative", # confederal_secretary, front_page
+                                                              "13" = "transformative", #  # fenealuil #spoke
+                                                              "14" = "transformative",
+                                                              "15" = "transformative", # confsal check all
+                                                              "16" = "restorative", #?governance?
+                                                              "17" = "restorative" , # "restart\ndecree",
+                                                              "18" = "restorative",
+                                                              "19" = "transformative", #*
+                                                              "20" = "transformative", # credit
+                                                              "21" = "restorative",
+                                                              "22" = "restorative",
+                                                              "23" = "transformative", #infrastructure
+                                                              "24" = "restorative", # thousand
+                                                              "25" = "restorative" )) #"industry")) 
+
+
+
+
+# DE_gammaterms <- DE_gammaterms %>% mutate(label = recode(topic,
+DE_gamma_termsact <- DE_gamma_termsact %>% mutate(label = recode(topic,
+                                                             "1" = "1 bridging\naid", # intended consequences
+                                                             "2" = "2 stimulus_package", # "stimulus\package",  # "growth",
+                                                             "3" = "3 families",  # "families", #*
+                                                             "4" = "4 work\nsecurity",
+                                                             "5" = "5 corona\naid" , # "business", minimum short_time_allowance
+                                                             "6" = "6 electricity\nprice", # electricity\nprice
+                                                             "7" = "7 extension\naid",
+                                                             "8" = "8 retail\nsector", # "smes", # ver.di_chairman
+                                                             "9" = "9 economic\nboost", 
+                                                             "10" = "10 schools",
+                                                             "11" = "11 european\nfunding",
+                                                             "12" = "12 climate\nprotection",
+                                                             "13" = "13 digitalization",
+                                                             "14" = "14 bridging\naid3",
+                                                             "15" = "15 basic\nsecurity", #creative industry, economic stabilisation_fund
+                                                             "16" = "16 special\ncorona aid",
+                                                             "17" = "17 lockdown" , # "self\nemployed",
+                                                             "18" = "18 economic\nstabilisation",
+                                                             "19" = "19 tax\nreduction", # "recession", 
+                                                             "20" = "20 social\nprotection" , #"lockdown",
+                                                             "21" = "21 insurance\nprotection",
+                                                             "22" = "22 germany\nin eu",
+                                                             "23" = "23 wumms",
+                                                             "24" = "24 gender\nequality", # voluntary shopping, voluntary initiatives
+                                                             "25" = "25 national\neconomy")) 
+
+# DE_gammaterms <- DE_gammaterms %>% mutate(policy = recode(topic,
+# gamma_termsmy <- gamma_termsmy %>% mutate(policy = recode(topic,
+DE_gamma_termsact <- DE_gamma_termsact %>% mutate(policy = recode(topic,
+                                                              "1" = "restorative", # brought cisl
+                                                              "2" = "transformative"  , #, "transitions",
+                                                              "3" = "restorative", #*
+                                                              "4" = "restorative", # "life\nquality",
+                                                              "5" = "restorative"  , #"emergency\naid", # companies
+                                                              "6" = "restorative",
+                                                              "7" = "restorative", # "agribusiness" , # "dc\naugust",
+                                                              "8" = "restorative", # agorarai
+                                                              "9" = "transformative",
+                                                              "10" = "restorative",
+                                                              "11" = "transformative" , # "sustainability",
+                                                              "12" = "transformative", # confederal_secretary, front_page
+                                                              "13" = "transformative", #  # fenealuil #spoke
+                                                              "14" = "restorative",
+                                                              "15" = "transformative", # confsal check all
+                                                              "16" = "restorative", #?governance?
+                                                              "17" = "restorative" , # "restart\ndecree",
+                                                              "18" = "restorative",
+                                                              "19" = "restorative", #*
+                                                              "20" = "restorative", # credit
+                                                              "21" = "restorative",
+                                                              "22" = "transformative",
+                                                              "23" = "transformative", #infrastructure
+                                                              "24" = "transformative", # thousand
+                                                              "25" = "restorative" )) #"industry")) 
+
+
+trdeac <- DE_gamma_termsact %>% # ggplot(aes(-rank, gamma, label = terms, fill = country)) +
+  # arrange(desc(gamma)) %>%
+  filter(topic %in% c(18,16,2,19,20,3,17,13,9,22,12)) %>%
+   ggplot(aes(x = reorder_within(topic,gamma,actor), y = gamma, 
+              fill = as.factor(policy))) +
+ # ggplot(aes(reorder(label,gamma), gamma, fill = policy)) +
   # ggplot(aes(reorder(label,gamma), gamma, fill = gradient)) +
+ # ggplot(aes(x = topic,y = gamma, fill = as.factor(policy))) +
   geom_col() +
   geom_text(aes(label = terms ), hjust = 0, y = 0.001,# nudge_y = 0.00005, size = 5, # 0.0005
             family = "IBMPlexSans") +
@@ -736,17 +1176,18 @@ gamma_terms_act %>% # ggplot(aes(-rank, gamma, label = terms, fill = country)) +
   scale_y_continuous(expand = c(0,0),
                      limits = c(0, 0.10) ,
                      labels = scales::percent_format()) +
-  facet_wrap(~ actor, scales = "free" ) +
+  scale_x_reordered() +
+  facet_wrap(~ actor, scales = "free_y" ) +
   # theme_tufte(base_family = "IBMPlexSans", ticks = FALSE) +
-  theme_bw() +
-  theme(legend.position="bottom", plot.title = element_text(size = 20,
+  theme_light() +
+  theme( strip.background = element_rect(fill="beige"), 
+         strip.text = element_text(color = "black",size = 12),
+    legend.position="none", plot.title = element_text(size = 20,
                                                             family="IBMPlexSans-Bold"),
         plot.subtitle = element_text(size = 13),
         axis.text.y = element_text(size = 10)) +
   # labs(x = NULL, y = expression(gamma))
   labs(x = NULL, y = "Topic Proportion")
-
-
 
 
 
@@ -847,76 +1288,76 @@ tidystm <- rename(tidystm, actor = y.level)
 
 prep <- estimateEffect(1:numm ~ actor * s(datenum), stm_m, metadata = stm_df$meta, uncertainty = "Global")
 
-# Main effect 
-
-effects_time <- get_effects(estimate = prep, variable = "datenum",type = "continuous")
-
-for (i in c(1:numm)) {
-  
-  effects_time %>%  filter(topic == i) %>%
-    # mutate(moderator = as.factor(moderator)) %>%
-    # filter(moderator == "TU") %>%
-    ggplot(aes(x = value, y = proportion
-               #   group = moderator, fill = moderator
-    )) +
-    geom_line() +
-    # geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2)  +
-    scale_x_continuous(breaks = c(18290,18414,18628,18841,18993,19250,19357),
-                       labels = c("18290" = "JAN 2020","18414" = "JUN 2020","18628" = "JAN 2021","18841" = "AUG 2021",
-                                  "18993" = "JAN 2022","19250" = "SEP 2022","19357" = "DEC 2022")) +
-    ggtitle(paste(titleplot, "Topic: ",i)) + 
-    ylab("Expected Proportion") +
-    # geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2)  +
-    # facet_wrap(~ topic_f,labeller=labeller(topic_f = lbs), scales = "free") +  # c("6" ="6: Digital Education","9" = "9: Families"))) +
-    # scale_color_manual(labels = c("Political\nActors","Trade\nAssociations","Trade\nUnions"),
-    #                    values = c("red","green","blue")) +
-    theme_light() +
-    theme(axis.text.x = element_text(vjust = 0.6,angle=45), axis.title.x = element_blank(),
-          strip.background = element_rect(fill="beige"), 
-          strip.text = element_text(color = "black",size = 12),
-          legend.position = "bottom")
-  ggsave(file = paste0(folder,"IT/",titleplot,"main_",i,".jpg"),width = 14, height = 3.5)
-  
-  
-} 
-
-effects_time <- merge(effects_time,DE_gammaterms[,c(1,7)],by = "topic")
-load(paste0(folder,"DE/effects_timeDE.Rdata"))
-
-effects_time %>%  filter(topic %in% c(18,20,3,19,17,2,13,9,22,13,12)) %>%  
-  # mutate(moderator = as.factor(moderator)) %>%
-  # filter(moderator == "TU") %>%
-  ggplot(aes(x = value, y = proportion, color = as.factor(topic)           #   group = moderator, fill = moderator
-  )) +
-# geom_point(aes(shape=as.factor(topic))) +
-  geom_line(aes(linetype = policy)) +
-# geom_text(aes(label = topic)) +
-  # geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2)  +
-  scale_x_continuous(breaks = c(18290,18414,18628,18841,18993,19250,19357),
-                     labels = c("18290" = "JAN 2020","18414" = "JUN 2020","18628" = "JAN 2021","18841" = "AUG 2021",
-                                "18993" = "JAN 2022","19250" = "SEP 2022","19357" = "DEC 2022")) +
- # ggtitle(paste(titleplot, "Topic: ",i)) + 
-  ylab("Expected Proportion") +
-  # geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2)  +
-  facet_wrap(~ policy) +
-  # facet_wrap(~ topic_f,labeller=labeller(topic_f = lbs), scales = "free") +  # c("6" ="6: Digital Education","9" = "9: Families"))) +
-  # scale_color_manual(labels = c("Political\nActors","Trade\nAssociations","Trade\nUnions"),
-  #                    values = c("red","green","blue")) +
-  theme_light() +
-  theme(axis.text.x = element_text(vjust = 0.6,angle=45), axis.title.x = element_blank(),
-        strip.background = element_rect(fill="beige"), 
-        strip.text = element_text(color = "black",size = 12),
-        legend.position = "bottom")
-
-pl
-plotly::ggplotly(pl)
-save(effects_time,file=paste0(folder,"DE/effects_timeDE.Rdata"))
-
-
+# Main effect ####
+# 
+# effects_time <- get_effects(estimate = prep, variable = "datenum",type = "continuous")
+# 
+# for (i in c(1:numm)) {
+#   
+#   effects_time %>%  filter(topic == i) %>%
+#     # mutate(moderator = as.factor(moderator)) %>%
+#     # filter(moderator == "TU") %>%
+#     ggplot(aes(x = value, y = proportion
+#                #   group = moderator, fill = moderator
+#     )) +
+#     geom_line() +
+#     # geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2)  +
+#     scale_x_continuous(breaks = c(18290,18414,18628,18841,18993,19250,19357),
+#                        labels = c("18290" = "JAN 2020","18414" = "JUN 2020","18628" = "JAN 2021","18841" = "AUG 2021",
+#                                   "18993" = "JAN 2022","19250" = "SEP 2022","19357" = "DEC 2022")) +
+#     ggtitle(paste(titleplot, "Topic: ",i)) + 
+#     ylab("Expected Proportion") +
+#     # geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2)  +
+#     # facet_wrap(~ topic_f,labeller=labeller(topic_f = lbs), scales = "free") +  # c("6" ="6: Digital Education","9" = "9: Families"))) +
+#     # scale_color_manual(labels = c("Political\nActors","Trade\nAssociations","Trade\nUnions"),
+#     #                    values = c("red","green","blue")) +
+#     theme_light() +
+#     theme(axis.text.x = element_text(vjust = 0.6,angle=45), axis.title.x = element_blank(),
+#           strip.background = element_rect(fill="beige"), 
+#           strip.text = element_text(color = "black",size = 12),
+#           legend.position = "bottom")
+#   ggsave(file = paste0(folder,"IT/",titleplot,"main_",i,".jpg"),width = 14, height = 3.5)
+#   
+#   
+# } 
+# 
+# effects_time <- merge(effects_time,DE_gammaterms[,c(1,7)],by = "topic")
+# load(paste0(folder,"DE/effects_timeDE.Rdata"))
+# 
+# effects_time %>%  filter(topic %in% c(18,20,3,19,17,2,13,9,22,13,12)) %>%  
+#   # mutate(moderator = as.factor(moderator)) %>%
+#   # filter(moderator == "TU") %>%
+#   ggplot(aes(x = value, y = proportion, color = as.factor(topic)           #   group = moderator, fill = moderator
+#   )) +
+# # geom_point(aes(shape=as.factor(topic))) +
+#   geom_line(aes(linetype = policy)) +
+# # geom_text(aes(label = topic)) +
+#   # geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2)  +
+#   scale_x_continuous(breaks = c(18290,18414,18628,18841,18993,19250,19357),
+#                      labels = c("18290" = "JAN 2020","18414" = "JUN 2020","18628" = "JAN 2021","18841" = "AUG 2021",
+#                                 "18993" = "JAN 2022","19250" = "SEP 2022","19357" = "DEC 2022")) +
+#  # ggtitle(paste(titleplot, "Topic: ",i)) + 
+#   ylab("Expected Proportion") +
+#   # geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2)  +
+#   facet_wrap(~ policy) +
+#   # facet_wrap(~ topic_f,labeller=labeller(topic_f = lbs), scales = "free") +  # c("6" ="6: Digital Education","9" = "9: Families"))) +
+#   # scale_color_manual(labels = c("Political\nActors","Trade\nAssociations","Trade\nUnions"),
+#   #                    values = c("red","green","blue")) +
+#   theme_light() +
+#   theme(axis.text.x = element_text(vjust = 0.6,angle=45), axis.title.x = element_blank(),
+#         strip.background = element_rect(fill="beige"), 
+#         strip.text = element_text(color = "black",size = 12),
+#         legend.position = "bottom")
+# 
+# pl
+# plotly::ggplotly(pl)
+# save(effects_time,file=paste0(folder,"DE/effects_timeDE.Rdata"))
 
 
 
-# Interaction
+
+
+# Interaction ####
 
 effects_int <- get_effects(estimates = prep,
                               variable = 'datenum',
@@ -940,13 +1381,19 @@ effects_int <- get_effects(estimates = prep,
   )
 
 
+effects_int <- effects_int %>%
+  mutate(moderator = recode(moderator,
+                        "POL" = "Political Actors",
+                        "TA" = "Trade Associations",
+                        "TU" = "Trade Unions"))
 
-for (i in c(1:numm)) {
-  
-tm <-  effects_int %>%  filter(topic == i) %>%
+# keep_ita <- c(5,6,4,24,2,20,15,19)
+
+
+efpl <- effects_int %>%  filter(topic %in% c(12,13,5,2,9,20,19,3)) %>%
     # mutate(moderator = as.factor(moderator)) %>%
     # filter(moderator == "TU") %>%
-    ggplot(aes(x = value, y = proportion,  color = moderator # ,
+    ggplot(aes(x = value, y =  proportion, color = as.factor(topic) #, color = moderator # ,
                #   group = moderator, fill = moderator
     )) +
     geom_line() +
@@ -954,45 +1401,53 @@ tm <-  effects_int %>%  filter(topic == i) %>%
     scale_x_continuous(breaks = c(18290,18414,18628,18841,18993,19250,19357),
                        labels = c("18290" = "JAN 2020","18414" = "JUN 2020","18628" = "JAN 2021","18841" = "AUG 2021",
                                   "18993" = "JAN 2022","19250" = "SEP 2022","19357" = "DEC 2022")) +
-    ggtitle(paste(titleplot, "Topic: ",i)) + 
+   # ggtitle(paste(titleplot, "Topic: ",i)) + 
     ylab("Expected Proportion") +
     # geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2)  +
     # facet_wrap(~ topic_f,labeller=labeller(topic_f = lbs), scales = "free") +  # c("6" ="6: Digital Education","9" = "9: Families"))) +
-    scale_color_manual(labels = c("Political\nActors","Trade\nAssociations","Trade\nUnions"),
-                       values = c("red","green","blue")) +
+  scale_color_manual(values = c("red","green","blue","cyan","purple","black","darkgreen","pink"),
+                     name = "Topic") +
+   facet_wrap(~ moderator, scales = "free_y") +
     theme_light() +
     theme(axis.text.x = element_text(vjust = 0.6,angle=45), axis.title.x = element_blank(),
           strip.background = element_rect(fill="beige"), 
           strip.text = element_text(color = "black",size = 12),
-          legend.position = "bottom") 
-  #plotly::ggplotly(pl)
+          legend.position = "bottom")
+
+plotly::ggplotly(efpl)
+
+ggarrange(trdeac,efpl, nrow = 2)
+ggsave(paste0(folder,"figures/actDE.jpg"),width = 18, height = 8)
+
+
+
  # ggsave(paste0(folder,"results25/",i,titleplot,"_time.jpg"),width = 12,height = 7)
   
-
-wd <-  tidystm %>% filter(topic == i) %>%
-  #  filter(! term %in% policies) %>%
-    group_by(actor) %>%
-    arrange(-beta) %>%
-    top_n(12,beta) %>%
-    ggplot(aes(reorder(term,beta),beta,fill = actor)) +
-    geom_col(show.legend = FALSE) +
-  scale_y_continuous(label = scales::percent ) +
-  #  scale_y_continuous(breaks = ~ c(min(.x), max(.x))) +
-    facet_wrap(~ actor, scales = "free",
-               labeller = labeller(actor = c("TU" = "Trade Unions","TA" = "Trade Associations", "POL" = "Political Actors"))) +
-    coord_flip() +
-   # ggtitle(paste("Topic: ",i)) +
-    xlab("") +
-    ylab("Probability words per actor") +
-    theme(axis.title.x = element_blank()) +
-    theme_bw()
-#  ggsave(paste0(folder,"/results/",titleplot,"_wordactor",i,".jpg"),width = 11,height = 5)
-
-cm <- grid.arrange(tm,wd,ncol = 2)
-ggsave(cm,file = paste0(folder,"IT/",titleplot,"comb_",i,".jpg"),width = 14, height = 3.5)
-
-
-} 
+# 
+# wd <-  tidystm %>% filter(topic == i) %>%
+#   #  filter(! term %in% policies) %>%
+#     group_by(actor) %>%
+#     arrange(-beta) %>%
+#     top_n(12,beta) %>%
+#     ggplot(aes(reorder(term,beta),beta,fill = actor)) +
+#     geom_col(show.legend = FALSE) +
+#   scale_y_continuous(label = scales::percent ) +
+#   #  scale_y_continuous(breaks = ~ c(min(.x), max(.x))) +
+#     facet_wrap(~ actor, scales = "free",
+#                labeller = labeller(actor = c("TU" = "Trade Unions","TA" = "Trade Associations", "POL" = "Political Actors"))) +
+#     coord_flip() +
+#    # ggtitle(paste("Topic: ",i)) +
+#     xlab("") +
+#     ylab("Probability words per actor") +
+#     theme(axis.title.x = element_blank()) +
+#     theme_bw()
+# #  ggsave(paste0(folder,"/results/",titleplot,"_wordactor",i,".jpg"),width = 11,height = 5)
+# 
+# cm <- grid.arrange(tm,wd,ncol = 2)
+# ggsave(cm,file = paste0(folder,"IT/",titleplot,"comb_",i,".jpg"),width = 14, height = 3.5)
+# 
+# 
+# } 
 
 
 
