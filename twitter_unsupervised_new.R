@@ -97,9 +97,47 @@ df_20_22$text <- str_squish(df_20_22$text)
 #
 df_20_22$monthyear <- format(as.Date(df_20_22$created_at),'%m-%Y')
 
-
+df_20_22$trimester <- "xxx"
+ df_20_22[df_20_22$monthyear ==  "01-2020",]$trimester <- "01-2020" 
+ df_20_22[df_20_22$monthyear ==     "02-2020",]$trimester <- "01-2020" 
+df_20_22[df_20_22$monthyear ==     "03-2020",]$trimester <- "01-2020" 
+ df_20_22[df_20_22$monthyear ==       "04-2020",]$trimester <- "02-2020" 
+ df_20_22[df_20_22$monthyear ==   "05-2020",]$trimester <-  "02-2020" 
+  df_20_22[df_20_22$monthyear ==      "06-2020",]$trimester <- "02-2020" 
+ df_20_22[df_20_22$monthyear ==   "07-2020",]$trimester <-  "03-2020" 
+ df_20_22[df_20_22$monthyear ==       "08-2020",]$trimester <- "03-2020" 
+ df_20_22[df_20_22$monthyear ==      "09-2020",]$trimester <- "03-2020" 
+ df_20_22[df_20_22$monthyear == "10-2020",]$trimester <- "04-2020" 
+  df_20_22[df_20_22$monthyear ==  "11-2020",]$trimester <- "04-2020" 
+ df_20_22[df_20_22$monthyear ==  "12-2020",]$trimester <- "04-2020" 
+ df_20_22[df_20_22$monthyear == "01-2021",]$trimester <- "01-2021" 
+ df_20_22[df_20_22$monthyear ==   "02-2021",]$trimester <- "01-2021" 
+ df_20_22[df_20_22$monthyear ==    "03-2021",]$trimester <- "01-2021" 
+ df_20_22[df_20_22$monthyear == "04-2021",]$trimester <- "02-2021" 
+ df_20_22[df_20_22$monthyear ==  "05-2021",]$trimester <- "02-2021" 
+ df_20_22[df_20_22$monthyear ==  "06-2021",]$trimester <- "02-2021" 
+ df_20_22[df_20_22$monthyear ==  "07-2021",]$trimester <- "03-2021" 
+ df_20_22[df_20_22$monthyear ==   "08-2021",]$trimester <- "03-2021" 
+ df_20_22[df_20_22$monthyear ==  "09-2021",]$trimester <- "03-2021" 
+ df_20_22[df_20_22$monthyear ==    "10-2021",]$trimester <- "04-2021" 
+ df_20_22[df_20_22$monthyear ==     "11-2021",]$trimester <- "04-2021" 
+ df_20_22[df_20_22$monthyear == "12-2021",]$trimester <- "04-2021" 
+ df_20_22[df_20_22$monthyear ==   "01-2022",]$trimester <- "01-2022" 
+ df_20_22[df_20_22$monthyear ==    "02-2022",]$trimester <-  "01-2022" 
+ df_20_22[df_20_22$monthyear ==   "03-2022",]$trimester <- "01-2022" 
+ df_20_22[df_20_22$monthyear ==    "04-2022",]$trimester <- "02-2022" 
+ df_20_22[df_20_22$monthyear ==  "05-2022",]$trimester <- "02-2022" 
+ df_20_22[df_20_22$monthyear ==   "06-2022",]$trimester <- "02-2022" 
+ df_20_22[df_20_22$monthyear ==  "07-2022" ,]$trimester <- "03-2022" 
+ df_20_22[df_20_22$monthyear ==    "08-2022",]$trimester <- "03-2022" 
+ df_20_22[df_20_22$monthyear == "09-2022",]$trimester <- "03-2022" 
+ df_20_22[df_20_22$monthyear ==  "10-2022",]$trimester <- "04-2022" 
+ df_20_22[df_20_22$monthyear ==      "11-2022",]$trimester <- "04-2022" 
+ df_20_22[df_20_22$monthyear ==    "12-2022",]$trimester <- "04-2022" 
 #
-
+ df_20_22$trimester <- factor(df_20_22$trimester, levels= c("01-2020","02-2020","03-2020","04-2020",
+                                                                      "01-2021","02-2021","03-2021","04-2021",
+                                                                      "01-2022","02-2022","03-2022","04-2022"))  
 
 # remove words
 rem_dfm <- read.xls("keywords_cnt.xls",sheet = "rem_dfm", encoding = "latin1")[,1]
@@ -458,7 +496,7 @@ top_terms <- tidy(stm_m) %>%
   arrange(beta) %>%
 #  group_by(topic) %>%
  # filter(!term %in% policies) %>%   # to filter out either it_policies or de_policies
-  top_n(10, beta) %>%
+  top_n(8, beta) %>%
   arrange(-beta)%>%
   select(topic, term) %>%
   summarise(terms = list(unique(term))) %>%
@@ -622,11 +660,11 @@ save(IT_gammaterms, file = paste0(folder,"IT/IT_gammaterms.Rdata"))
 # df <- DE_gammaterms
 df <- rbind(DE_gammaterms,IT_gammaterms)
 
-tpit <- df %>% filter(country == "Italy") %>%
+tpde <- df %>% filter(country == "Germany") %>%
     ggplot(aes(reorder(label,gamma), gamma, fill = policy)) +
  # ggplot(aes(reorder(label,gamma), gamma, fill = gradient)) +
  geom_col() +
-  geom_text(aes(label = terms ), hjust = 0, y = 0.001,# nudge_y = 0.00005, size = 5, # 0.0005
+  geom_text(aes(label = terms ), hjust = 0, y = 0.001, size = 5.5,# nudge_y = 0.00005, size = 5, # 0.0005
             family = "IBMPlexSans") +
  # scale_fill_manual("gradie) +
   coord_flip() +
@@ -636,13 +674,14 @@ tpit <- df %>% filter(country == "Italy") %>%
 facet_wrap(~ country , scales = "free", dir = "v") +
   # theme_tufte(base_family = "IBMPlexSans", ticks = FALSE) +
   theme_bw() +
-  theme(legend.position="bottom", plot.title = element_text(size = 20,
-                                  family="IBMPlexSans-Bold"),
-        plot.subtitle = element_text(size = 13),
-        axis.text.y = element_text(size = 10)) +
+  theme(legend.position="bottom",
+        axis.text.y = element_text(size = 12),
+        legend.text = element_text(size=12),
+        strip.background = element_rect(fill="beige"), 
+        strip.text = element_text(color = "black",size = 16)) +
   # labs(x = NULL, y = expression(gamma))
   labs(x = NULL, y = "Topic Proportion")
-save(tpit,file = paste0(folder,"IT/tpit.Rdata"))
+save(tpde,file = paste0(folder,"DE/tpde.Rdata"))
 # ggsave(paste0(folder,"/figures/","topiproportionDE.jpg"),width = 20, height = 11)
 
 
@@ -650,10 +689,11 @@ save(tpit,file = paste0(folder,"IT/tpit.Rdata"))
 
 
 gamma_termsmy <- td_gamma %>%
-  group_by(topic,monthyear) %>%
+#  group_by(topic,monthyear) %>%
+  group_by(topic,trimester) %>%
   summarise(gamma = mean(gamma)) %>%
-  arrange(desc(gamma)) %>%
-  left_join(top_terms, by = "topic")
+  arrange(desc(gamma)) # %>%
+ # left_join(top_terms, by = "topic")
 
 
 gamma_termsmy$monthyear <- factor(gamma_termsmy$monthyear, levels= c("01-2020","02-2020","03-2020","04-2020","05-2020","06-2020",
@@ -801,17 +841,21 @@ DE_gamma_termsmy <- DE_gamma_termsmy %>% mutate(policy = recode(topic,
 
  
  a <- DE_gamma_termsmy %>% mutate(country = "Germany") %>% 
-   group_by(monthyear) %>%
+  # group_by(monthyear) %>%
+   group_by(trimester) %>%
    top_n(4,gamma) %>%
    mutate(textlabel = topic) %>%
-   mutate(sel = paste0(topic,monthyear))
+  # mutate(sel = paste0(topic,monthyear))
+ mutate(sel = paste0(topic,trimester))
  
  DE_gamma_termsmy <- DE_gamma_termsmy %>% 
-   mutate(sel = paste0(topic,monthyear)) %>%
+  # mutate(sel = paste0(topic,monthyear)) %>%
+   mutate(sel = paste0(topic,trimester)) %>%
    mutate(textlabel  = ifelse(sel %in% a$sel,topic,""))
 
-tptmde <- DE_gamma_termsmy %>% 
-  ggplot(aes(x = monthyear, y = gamma, 
+ tptmde4q <- DE_gamma_termsmy %>% 
+#  ggplot(aes(x = monthyear, y = gamma, 
+             ggplot(aes(x = trimester, y = gamma, 
              fill = as.factor(policy) # ,
                                #  color = as.factor(policy) 
              )) +
@@ -821,15 +865,17 @@ tptmde <- DE_gamma_termsmy %>%
  geom_text(aes(label = textlabel), color = "black", position = position_stack(vjust = 0.5 )) +
   labs(x = "Time", y = "Topic Proportion") + 
 # scale_fill_manual(values = ifelse(IT_gamma_termsmy$policy == "restorative","cyan","pink")) +
-     facet_wrap(~ country) +
+   #  facet_wrap(~ country) +
   theme_bw() +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.3, hjust=1),legend.position = "none")
-save(tptmde,file=paste0(folder,"DE/tptmde.Rdata"))
+   theme(legend.position = "none")
+ # theme(axis.text.x = element_text(angle = 90, vjust = 0.3, hjust=1),legend.position = "none")
+save(tptmde4q,file=paste0(folder,"DE/tptmde4q.Rdata"))
 
-load(paste0(folder,"DE/tpde.Rdata"))
+plotly::ggplotly(tptmit4q)
+load(paste0(folder,"IT/tpit.Rdata"))
 
-ggarrange(tpit,tpde,tptmit,tptmde, common.legend = TRUE, legend = "bottom")
-ggsave( paste0(folder,"figures/tp1.jpg"),width = 22,height = 18)
+ggarrange(tpit,tpde,tptmit4q,tptmde4q, common.legend = TRUE, legend = "bottom", heights = c(1.5,0.7))  #  widths = c(1.4, 0.6)) # 
+ggsave( paste0(folder,"figures/tp14Q.jpg"),width = 29.5,height = 16) # 12.5)
 
 
 #
@@ -984,30 +1030,40 @@ DE_gamma_termsact <- DE_gamma_termsact %>% mutate(policy = recode(topic,
 
 
 df <- rbind(IT_gamma_termsact,DE_gamma_termsact)
+df <- df %>%  mutate(sel = paste0(topic,actor))
+
+# df %>%
+#   # group_by(actor,country) %>%
+#   # ungroup() %>%
+#  # mutate(topic  = reorder_within(topic,-gamma,actor)) %>%
+#  # ggplot(aes(x = factor(topic,c(25:1)), y = gamma, 
+#              ggplot(aes(x = reorder_within(topic,gamma,actor), y = gamma, 
+#                                fill = as.factor(policy))) +
+#   geom_bar(stat="identity") +
+#   labs(x = "Topics",  y = "Topic proportion") + 
+# # geom_text(aes(label = topic),color = "black") + 
+#   facet_wrap(~ country + actor , scales = "free_y") +
+#   scale_x_reordered() +
+#   coord_flip() +
+#   theme_bw() +
+#   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),legend.position = "none") 
+# ggsave(file=paste0(folder,"figures/actor_both.jpg"),width = 8,height = 7)
+
 
 df %>%
-  # group_by(actor,country) %>%
-  # ungroup() %>%
- # mutate(topic  = reorder_within(topic,-gamma,actor)) %>%
- # ggplot(aes(x = factor(topic,c(25:1)), y = gamma, 
-             ggplot(aes(x = reorder_within(topic,gamma,actor), y = gamma, 
-                               fill = as.factor(policy))) +
-  geom_bar(stat="identity") +
-  labs(x = "Topics",  y = "Topic proportion") + 
-# geom_text(aes(label = topic),color = "black") + 
-  facet_wrap(~ country + actor , scales = "free_y") +
-  scale_x_reordered() +
-  coord_flip() +
-  theme_bw() +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),legend.position = "none") 
-ggsave(file=paste0(folder,"figures/actor_both.jpg"),width = 8,height = 7)
-
-
-DE_gamma_termsact %>%
   ggplot(aes(x = actor, y = gamma, fill = as.factor(policy))) +
   geom_col(color = "black") +
- coord_flip() +
-  geom_text(aes(label = topic), color = "black", position = position_stack(vjust = 0.5 )) 
+ # coord_flip() +
+  geom_text(aes(label = ifelse(gamma >= 0.019584737,topic,"") ),
+            color = "black", position = position_stack(vjust = 0.5 )) +
+  facet_wrap(~ country) +
+  labs(y = "Topic proporiton") +
+  theme_bw() +
+  theme(strip.background = element_rect(fill="beige"), 
+        strip.text = element_text(color = "black",size = 16), 
+        axis.title.x = element_blank(),
+        legend.position = "none")
+ggsave(file=paste0(folder,"figures/both_tp2.jpg"),width = 8, height = 5.5)
 
 
 
@@ -1158,20 +1214,42 @@ DE_gamma_termsact <- DE_gamma_termsact %>% mutate(policy = recode(topic,
                                                               "23" = "transformative", #infrastructure
                                                               "24" = "transformative", # thousand
                                                               "25" = "restorative" )) #"industry")) 
+DE_gamma_termsact <- DE_gamma_termsact[,-6]
+save(IT_gamma_termsact,file=paste0(folder,"IT/IT_gamma_termsact.Rdata"))
+save(DE_gamma_termsact,file=paste0(folder,"DE/DE_gamma_termsact.Rdata"))
+
+load(paste0(folder,"IT/IT_gamma_termsact.Rdata"))
+load(paste0(folder,"DE/DE_gamma_termsact.Rdata"))
 
 
 trdeac <- DE_gamma_termsact %>% # ggplot(aes(-rank, gamma, label = terms, fill = country)) +
   # arrange(desc(gamma)) %>%
-  filter(topic %in% c(18,16,2,19,20,3,17,13,9,22,12)) %>%
+  filter(topic %in% c(2,13,20,19,5,9,8,24)) %>%
    ggplot(aes(x = reorder_within(topic,gamma,actor), y = gamma, 
-              fill = as.factor(policy))) +
+              fill = as.factor(topic))) +
  # ggplot(aes(reorder(label,gamma), gamma, fill = policy)) +
   # ggplot(aes(reorder(label,gamma), gamma, fill = gradient)) +
  # ggplot(aes(x = topic,y = gamma, fill = as.factor(policy))) +
   geom_col() +
   geom_text(aes(label = terms ), hjust = 0, y = 0.001,# nudge_y = 0.00005, size = 5, # 0.0005
             family = "IBMPlexSans") +
-  # scale_fill_manual("gradie) +
+  scale_fill_manual(values = c("2" = "salmon",
+                               "13" = "green",
+                               "20" = "lightblue",
+                               "19" = "cyan",
+                               "5" = "purple",
+                               "9" = "brown2",
+                               "8" = "lightgreen",
+                               "24" = "tan1"),
+                    labels = c("2" = "Stimulus package",
+                               "13" = "Digitalization",
+                               "20" = "Social protection",
+                               "19" = "Tax reduction",
+                               "5" = "Corona aid",
+                               "9" = "Economic boost",
+                               "8" = "Retail sector",
+                               "24" = "Gender equality"),
+                     name = "Topic") + 
   coord_flip() +
   scale_y_continuous(expand = c(0,0),
                      limits = c(0, 0.10) ,
@@ -1182,102 +1260,55 @@ trdeac <- DE_gamma_termsact %>% # ggplot(aes(-rank, gamma, label = terms, fill =
   theme_light() +
   theme( strip.background = element_rect(fill="beige"), 
          strip.text = element_text(color = "black",size = 12),
-    legend.position="none", plot.title = element_text(size = 20,
-                                                            family="IBMPlexSans-Bold"),
         plot.subtitle = element_text(size = 13),
-        axis.text.y = element_text(size = 10)) +
-  # labs(x = NULL, y = expression(gamma))
+        axis.text.y = element_text(size = 10),
+        legend.position="bottom") +
+  guides(fill = guide_legend(nrow = 1)) +
   labs(x = NULL, y = "Topic Proportion")
 
-
-
-
-# gamma_terms %>%
-#   # top_n(20, gamma) %>%
-#   ggplot(aes(topic, gamma, label = terms, fill = topic)) +
-#   geom_col(show.legend = FALSE) +
-#   # geom_text(hjust = 0.2, nudge_y = 0.00005, size = 5, # 0.0005
-#   #           family = "IBMPlexSans") +
-#   geom_text() +
-#   coord_flip() +
-#   scale_y_continuous(expand = c(0,0),
-#                      limits = c(0, 0.10) , 
-#                      labels = scales::percent_format() ) +
-#   theme_tufte(base_family = "IBMPlexSans", ticks = FALSE) +
-#   theme(plot.title = element_text(size = 20,
-#                                   family="IBMPlexSans-Bold"),
-#         plot.subtitle = element_text(size = 13),
-#         axis.text.y = element_text(size = 15)) +
-#   labs(x = NULL, y = expression(gamma))
-
-# tidy(stm_m) %>%
-#   group_by(topic) %>%
-#   top_n(10) %>%
-#  # ungroup %>%
-#  # mutate(term = reorder_within(term, beta, topic)) %>%
-#   mutate(term =  reorder(term, beta))  %>%
-#   mutate(topiclab = paste0("Topic ",topic)) %>%
-#   mutate(topic2 = factor(topiclab, levels = unique(topiclab[order(topic)]))) %>%
-#   #  filter(term %in% key_de & beta > 0.002) %>%
-#   ggplot(aes(beta,term, fill = topiclab)) +
-#   geom_col(show.legend = FALSE) +
-#   facet_wrap(~ topic2, scales = "free") +
-#   scale_y_reordered() +
-#   # coord_flip() +
-#   xlab("Probability words belonging to topic") +
-#   # ylab("") +
-#   theme_bw() +
-#   theme(plot.title = element_text(hjust = 0.5),axis.text.x = element_text(angle = 45, 
-#                                                                           vjust = 1, hjust=1))
-# plot(betapic)
-
-
-
-
-
-
-
-
-
-
-
-
-
-# SANKEY ####
-# library(networkD3)
-# library(dplyr)
-# 
-# tidystm <- tidy(stm_m)  %>% group_by(term,topic) %>%  summarise(beta = mean(beta))
-# # tidystm <- rename(tidystm, actor = y.level)
-# 
-# a <- tidystm %>% filter(term %in% policies) # select policies to label on starting column: Italian or German
-# a$topic <- as.character(a$topic)
-# gamma_terms$terms <- as.character(gamma_terms$terms)
-# 
-# for (i in c(1:numm)){
-#   
-#   a[a$topic == i,]$topic <- paste(a[a$topic == i,]$topic,gamma_terms[gamma_terms$topic == i,]$gamma,":", gamma_terms[gamma_terms$topic == i,]$terms)
-#   
-# }
-# 
-# 
-# # From these flows we need to create a node data frame: it lists every entities involved in the flow
-# nodes <- data.frame(
-#   name=c(as.character(a$term), 
-#          as.character(a$topic)) %>% unique()
-# )
-# 
-# # With networkD3, connection must be provided using id, not using real name like in the links dataframe.. So we need to reformat it.
-# a$IDsource <- match(a$term, nodes$name)-1 
-# a$IDtarget <- match(a$topic, nodes$name)-1
-# 
-# 
-# # Make the Network
-# sankeyNetwork(Links = a, Nodes = nodes,
-#               Source = "IDsource", Target = "IDtarget",
-#               Value = "beta", NodeID = "name",
-#               fontSize=16,
-#               sinksRight =FALSE)
+tritac <- IT_gamma_termsact %>% # ggplot(aes(-rank, gamma, label = terms, fill = country)) +
+  # arrange(desc(gamma)) %>%
+  filter(topic %in% c(5,10,2,15,20,9,24,19)) %>%
+  ggplot(aes(x = reorder_within(topic,gamma,actor), y = gamma, 
+             fill = as.factor(topic))) +
+  # ggplot(aes(reorder(label,gamma), gamma, fill = policy)) +
+  # ggplot(aes(reorder(label,gamma), gamma, fill = gradient)) +
+  # ggplot(aes(x = topic,y = gamma, fill = as.factor(policy))) +
+  geom_col() +
+  geom_text(aes(label = terms ), hjust = 0, y = 0.001,# nudge_y = 0.00005, size = 5, # 0.0005
+            family = "IBMPlexSans") +
+  scale_fill_manual(values = c("5" = "salmon",
+                               "10" = "green",
+                               "2" = "lightblue",
+                               "15" = "cyan",
+                               "20" = "purple",
+                               "9" = "brown2",
+                               "24" = "lightgreen",
+                               "19" = "tan1"),
+                    labels = c("5" = "Emergency companies",
+                               "10" = "European funding",
+                               "2" = "Pnrr investments",
+                               "15" = "Pnrr implementation",
+                               "20" = "South",
+                               "9" = "Social confrontations",
+                               "24" = "Recovery interventions",
+                               "19" = "Employment equality"),
+                    name = "Topic") + 
+  coord_flip() +
+  scale_y_continuous(expand = c(0,0),
+                     limits = c(0, 0.10) ,
+                     labels = scales::percent_format()) +
+  scale_x_reordered() +
+  facet_wrap(~ actor, scales = "free_y" ) +
+  # theme_tufte(base_family = "IBMPlexSans", ticks = FALSE) +
+  theme_light() +
+  theme( strip.background = element_rect(fill="beige"), 
+         strip.text = element_text(color = "black",size = 12),
+         plot.subtitle = element_text(size = 13),
+         axis.text.y = element_text(size = 10),
+         legend.position="bottom") +
+  guides(fill = guide_legend(nrow = 1)) +
+  labs(x = NULL, y = "Topic Proportion")
 
 
 # TIME ####
@@ -1286,93 +1317,27 @@ trdeac <- DE_gamma_termsact %>% # ggplot(aes(-rank, gamma, label = terms, fill =
 tidystm <- tidy(stm_m)
 tidystm <- rename(tidystm, actor = y.level)
 
-prep <- estimateEffect(1:numm ~ actor * s(datenum), stm_m, metadata = stm_df$meta, uncertainty = "Global")
-
-# Main effect ####
-# 
-# effects_time <- get_effects(estimate = prep, variable = "datenum",type = "continuous")
-# 
-# for (i in c(1:numm)) {
-#   
-#   effects_time %>%  filter(topic == i) %>%
-#     # mutate(moderator = as.factor(moderator)) %>%
-#     # filter(moderator == "TU") %>%
-#     ggplot(aes(x = value, y = proportion
-#                #   group = moderator, fill = moderator
-#     )) +
-#     geom_line() +
-#     # geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2)  +
-#     scale_x_continuous(breaks = c(18290,18414,18628,18841,18993,19250,19357),
-#                        labels = c("18290" = "JAN 2020","18414" = "JUN 2020","18628" = "JAN 2021","18841" = "AUG 2021",
-#                                   "18993" = "JAN 2022","19250" = "SEP 2022","19357" = "DEC 2022")) +
-#     ggtitle(paste(titleplot, "Topic: ",i)) + 
-#     ylab("Expected Proportion") +
-#     # geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2)  +
-#     # facet_wrap(~ topic_f,labeller=labeller(topic_f = lbs), scales = "free") +  # c("6" ="6: Digital Education","9" = "9: Families"))) +
-#     # scale_color_manual(labels = c("Political\nActors","Trade\nAssociations","Trade\nUnions"),
-#     #                    values = c("red","green","blue")) +
-#     theme_light() +
-#     theme(axis.text.x = element_text(vjust = 0.6,angle=45), axis.title.x = element_blank(),
-#           strip.background = element_rect(fill="beige"), 
-#           strip.text = element_text(color = "black",size = 12),
-#           legend.position = "bottom")
-#   ggsave(file = paste0(folder,"IT/",titleplot,"main_",i,".jpg"),width = 14, height = 3.5)
-#   
-#   
-# } 
-# 
-# effects_time <- merge(effects_time,DE_gammaterms[,c(1,7)],by = "topic")
-# load(paste0(folder,"DE/effects_timeDE.Rdata"))
-# 
-# effects_time %>%  filter(topic %in% c(18,20,3,19,17,2,13,9,22,13,12)) %>%  
-#   # mutate(moderator = as.factor(moderator)) %>%
-#   # filter(moderator == "TU") %>%
-#   ggplot(aes(x = value, y = proportion, color = as.factor(topic)           #   group = moderator, fill = moderator
-#   )) +
-# # geom_point(aes(shape=as.factor(topic))) +
-#   geom_line(aes(linetype = policy)) +
-# # geom_text(aes(label = topic)) +
-#   # geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2)  +
-#   scale_x_continuous(breaks = c(18290,18414,18628,18841,18993,19250,19357),
-#                      labels = c("18290" = "JAN 2020","18414" = "JUN 2020","18628" = "JAN 2021","18841" = "AUG 2021",
-#                                 "18993" = "JAN 2022","19250" = "SEP 2022","19357" = "DEC 2022")) +
-#  # ggtitle(paste(titleplot, "Topic: ",i)) + 
-#   ylab("Expected Proportion") +
-#   # geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2)  +
-#   facet_wrap(~ policy) +
-#   # facet_wrap(~ topic_f,labeller=labeller(topic_f = lbs), scales = "free") +  # c("6" ="6: Digital Education","9" = "9: Families"))) +
-#   # scale_color_manual(labels = c("Political\nActors","Trade\nAssociations","Trade\nUnions"),
-#   #                    values = c("red","green","blue")) +
-#   theme_light() +
-#   theme(axis.text.x = element_text(vjust = 0.6,angle=45), axis.title.x = element_blank(),
-#         strip.background = element_rect(fill="beige"), 
-#         strip.text = element_text(color = "black",size = 12),
-#         legend.position = "bottom")
-# 
-# pl
-# plotly::ggplotly(pl)
-# save(effects_time,file=paste0(folder,"DE/effects_timeDE.Rdata"))
-
-
-
-
+prepDE <- estimateEffect(1:numm ~ actor * s(datenum), stm_m, metadata = stm_df$meta, uncertainty = "Global")
+save(prepDE,file=paste0(folder,"DE/prepDE.Rdata"))
 
 # Interaction ####
+load(paste0(folder,"DE/prepDE.R"))
+load(paste0(folder,"IT/prepIT.R"))
 
-effects_int <- get_effects(estimates = prep,
+effects_int <- get_effects(estimates = prepDE,
                               variable = 'datenum',
                               type = 'continuous',
                                moderator = 'actor',
                               modval = "POL") %>%
   bind_rows(
-    get_effects(estimates = prep,
+    get_effects(estimates = prepDE,
                 variable = 'datenum',
                 type = 'continuous',
                 moderator = 'actor',
                 modval = "TA") %>%
       
       bind_rows(
-        get_effects(estimates = prep,
+        get_effects(estimates = prepDE,
                     variable = 'datenum',
                     type = 'continuous',
                     moderator = 'actor',
@@ -1390,7 +1355,7 @@ effects_int <- effects_int %>%
 # keep_ita <- c(5,6,4,24,2,20,15,19)
 
 
-efpl <- effects_int %>%  filter(topic %in% c(12,13,5,2,9,20,19,3)) %>%
+depl <- effects_int %>%  filter(topic %in% c(2,13,20,19,5,9,8,24)) %>%
     # mutate(moderator = as.factor(moderator)) %>%
     # filter(moderator == "TU") %>%
     ggplot(aes(x = value, y =  proportion, color = as.factor(topic) #, color = moderator # ,
@@ -1405,21 +1370,67 @@ efpl <- effects_int %>%  filter(topic %in% c(12,13,5,2,9,20,19,3)) %>%
     ylab("Expected Proportion") +
     # geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2)  +
     # facet_wrap(~ topic_f,labeller=labeller(topic_f = lbs), scales = "free") +  # c("6" ="6: Digital Education","9" = "9: Families"))) +
-  scale_color_manual(values = c("red","green","blue","cyan","purple","black","darkgreen","pink"),
+  scale_color_manual(values = c("2" = "salmon",
+                                "13" = "green",
+                                "20" = "lightblue",
+                                "19" = "cyan",
+                                "5" = "purple",
+                                "9" = "brown2",
+                                "8" = "lightgreen",
+                                "24" = "tan1"),
                      name = "Topic") +
    facet_wrap(~ moderator, scales = "free_y") +
     theme_light() +
     theme(axis.text.x = element_text(vjust = 0.6,angle=45), axis.title.x = element_blank(),
           strip.background = element_rect(fill="beige"), 
           strip.text = element_text(color = "black",size = 12),
-          legend.position = "bottom")
-
-plotly::ggplotly(efpl)
-
-ggarrange(trdeac,efpl, nrow = 2)
-ggsave(paste0(folder,"figures/actDE.jpg"),width = 18, height = 8)
+          legend.position = "none")
 
 
+
+itpl <- effects_int %>%  filter(topic %in% c(5,10,2,15,20,9,24,19)) %>%
+  # mutate(moderator = as.factor(moderator)) %>%
+  # filter(moderator == "TU") %>%
+  ggplot(aes(x = value, y =  proportion, color = as.factor(topic) #, color = moderator # ,
+             #   group = moderator, fill = moderator
+  )) +
+  geom_line() +
+  # geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2)  +
+  scale_x_continuous(breaks = c(18290,18414,18628,18841,18993,19250,19357),
+                     labels = c("18290" = "JAN 2020","18414" = "JUN 2020","18628" = "JAN 2021","18841" = "AUG 2021",
+                                "18993" = "JAN 2022","19250" = "SEP 2022","19357" = "DEC 2022")) +
+  # ggtitle(paste(titleplot, "Topic: ",i)) + 
+  ylab("Expected Proportion") +
+  # geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2)  +
+  # facet_wrap(~ topic_f,labeller=labeller(topic_f = lbs), scales = "free") +  # c("6" ="6: Digital Education","9" = "9: Families"))) +
+  scale_color_manual(values = c("5" = "salmon",
+                               "10" = "green",
+                               "2" = "lightblue",
+                               "15" = "cyan",
+                               "20" = "purple",
+                               "9" = "brown2",
+                               "24" = "lightgreen",
+                               "19" = "tan1"),
+                    labels = c("5" = "Emergency companies",
+                               "10" = "European funding",
+                               "2" = "Pnrr investments",
+                               "15" = "Pnrr implementation",
+                               "20" = "South",
+                               "9" = "Social confrontations",
+                               "24" = "Recovery interventions",
+                               "19" = "Employment equality"),
+                    name = "Topic") +
+  facet_wrap(~ moderator, scales = "free_y") +
+  theme_light() +
+  theme(axis.text.x = element_text(vjust = 0.6,angle=45), axis.title.x = element_blank(),
+        strip.background = element_rect(fill="beige"), 
+        strip.text = element_text(color = "black",size = 12),
+        legend.position = "none")
+
+ggarrange(tritac,itpl, nrow = 2)
+ggsave(paste0(folder,"figures/actIT.jpg"),width = 18, height = 8)
+
+plotly::ggplotly(itpl)
 
  # ggsave(paste0(folder,"results25/",i,titleplot,"_time.jpg"),width = 12,height = 7)
   
