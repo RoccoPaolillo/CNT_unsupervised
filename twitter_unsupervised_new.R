@@ -28,6 +28,7 @@ library(ggthemes)
 library("stminsights")
 library("gridExtra")
 library("ggpubr")
+library(readxl)
 
 # "%nin%" <- Negate("%in%")
 
@@ -47,40 +48,50 @@ df_20_22$text <- str_replace_all(df_20_22$text,"\\b's\\b","")
 df_20_22$text <- str_replace_all(df_20_22$text,"\\b-\\b","_") 
 
 # German-specific processing
-key_de <- read.xls("keywords_cnt.xls",sheet = "lemma_de", encoding = "latin1")[,1]
+#key_de <- read.xls("keywords_cnt.xls",sheet = "lemma_de", encoding = "latin1")[,1]
+key_de <- read_xls("keywords_cnt.xls",sheet = "lemma_de")[,1]
 key_de <- paste0("\\b",key_de,"\\b")
-lemma_de <- read.xls("keywords_cnt.xls",sheet = "lemma_de", encoding="latin1" )[,2]
-# lemma_de <- paste0("\\b",lemma_de,"\\b")
+#lemma_de <- read.xls("keywords_cnt.xls",sheet = "lemma_de", encoding="latin1" )[,2]
+lemma_de <- read_xls("keywords_cnt.xls",sheet = "lemma_de")[,2]
+lemma_de <- paste0("\\b",lemma_de,"\\b")
 names(lemma_de) <- key_de
 df_20_22[df_20_22$country == "Germany",]$text <- str_replace_all(df_20_22[df_20_22$country == "Germany",]$text,lemma_de) 
 
 # Italian-specific processing
-key_it <- read.xls("keywords_cnt.xls",sheet = "lemma_it", encoding = "latin1")[,1]
+# key_it <- read.xls("keywords_cnt.xls",sheet = "lemma_it", encoding = "latin1")[,1]
+key_it <- read_xls("keywords_cnt.xls",sheet = "lemma_it")[,1]
 key_it <- paste0("\\b",key_it,"\\b")
-lemma_it <- read.xls("keywords_cnt.xls",sheet = "lemma_it", encoding="latin1" )[,2]
-# lemma_de <- paste0("\\b",lemma_de,"\\b")
+#lemma_it <- read.xls("keywords_cnt.xls",sheet = "lemma_it", encoding="latin1" )[,2]
+lemma_it <- read_xls("keywords_cnt.xls",sheet = "lemma_it" )[,2]
+lemma_it <- paste0("\\b",lemma_it,"\\b")
 names(lemma_it) <- key_it
 df_20_22[df_20_22$country == "Italy",]$text <- str_replace_all(df_20_22[df_20_22$country == "Italy",]$text,lemma_it) 
 
 
 # # English common terms
-eng <- read.xls("keywords_cnt.xls",sheet = "lemma_eng", encoding = "latin1")[,1]
+# eng <- read.xls("keywords_cnt.xls",sheet = "lemma_eng", encoding = "latin1")[,1]
+eng <- read_xls("keywords_cnt.xls",sheet = "lemma_eng")[,1]
 eng <- paste0("\\b",eng,"\\b")
-lemma_eng <- read.xls("keywords_cnt.xls",sheet = "lemma_eng", encoding="latin1" )[,2]
-# lemma_de <- paste0("\\b",lemma_de,"\\b")
+# lemma_eng <- read.xls("keywords_cnt.xls",sheet = "lemma_eng", encoding="latin1" )[,2]
+lemma_eng <- read_xls("keywords_cnt.xls",sheet = "lemma_eng")[,2]
+lemma_eng <- paste0("\\b",lemma_eng,"\\b")
 names(lemma_eng) <- eng
 df_20_22$text <- str_replace_all(df_20_22$text,lemma_eng)
 
 # compounds
-cmpd <- read.xls("keywords_cnt.xls",sheet = "compound_dfm", encoding = "latin1")[,1]
+#cmpd <- read.xls("keywords_cnt.xls",sheet = "compound_dfm", encoding = "latin1")[,1]
+cmpd <- read_xls("keywords_cnt.xls",sheet = "compound_dfm")[,1]
 cmpd <- paste0("\\b",cmpd,"\\b")
-cmpdlinked <- read.xls("keywords_cnt.xls",sheet = "compound_dfm", encoding="latin1" )[,2]
+#cmpdlinked <- read.xls("keywords_cnt.xls",sheet = "compound_dfm", encoding="latin1" )[,2]
+cmpdlinked <- read_xls("keywords_cnt.xls",sheet = "compound_dfm")[,2]
+cmpdlinked <- paste0("\\b",cmpdlinked,"\\b")
 names(cmpdlinked) <- cmpd
 df_20_22$text <- str_replace_all(df_20_22$text,cmpdlinked)
 
 #
 
-dfdelete <- read.xls("keywords_cnt.xls",sheet = "usernamedelete", encoding = "latin1")
+# dfdelete <- read.xls("keywords_cnt.xls",sheet = "usernamedelete", encoding = "latin1")
+dfdelete <- read_xls("keywords_cnt.xls",sheet = "usernamedelete")
 
 for (i in dfdelete$usrnm) {
   
@@ -150,7 +161,8 @@ df_20_22[df_20_22$monthyear ==     "03-2020",]$trimester <- "01-2020"
 df_20_22 <- df_20_22 %>% filter(! monthyear %in% c("01-2020","02-2020")) # one only for each month and not strict covid
  
 # remove words
-rem_dfm <- read.xls("keywords_cnt.xls",sheet = "rem_dfm", encoding = "latin1")[,1]
+# rem_dfm <- read.xls("keywords_cnt.xls",sheet = "rem_dfm", encoding = "latin1")[,1]
+rem_dfm <- read_xls("keywords_cnt.xls",sheet = "rem_dfm")[,1]
 rem_dfm <- unique(rem_dfm)
 rem_char <- c("http*","@*","€","+","|","s","faq","=","_","__","~","___")
 
@@ -358,15 +370,20 @@ deall <-  df_20_22 %>% filter(country == "Germany") %>%
                             "TA" = "Trade\nAssociations",
                             "TU" = "Trade\nUnions")) %>%
 ggplot(aes(x = fct_rev(fct_infreq(actor)), fill = actor)) + geom_bar() +
-  geom_text(aes(label = ..count..), stat = "count", vjust = 0,hjust = 1) +
+  geom_text(aes(label = ..count..), stat = "count", vjust = 0,hjust = 1, size  = 5) +
   xlab("count tweets") +
   coord_flip() +
   facet_wrap(~ country, scales = "free", nrow = 2) +
-  scale_fill_manual(values = c("Political\nActors" = "salmon","Trade\nAssociations" = "seagreen",
-                               "Trade\nUnions" = "steelblue")) +
+  scale_fill_manual(values = c("Political\nActors" = "red","Trade\nAssociations" = "limegreen",
+                               "Trade\nUnions" = "purple")) +
   guides(fill="none") + 
   theme_bw() +
-  theme(axis.title.y = element_blank())
+  theme(strip.background = element_rect(fill="beige"),
+        axis.title.y = element_blank(),
+        axis.text.y = element_text(size = 12),
+        axis.text.x = element_text(size =10),
+        strip.text.x = element_text(size = 12)
+        )
   
   
 detime <- df_20_22 %>% filter(country == "Germany") %>% 
@@ -382,11 +399,13 @@ detime <- df_20_22 %>% filter(country == "Germany") %>%
   xlab("date") +
 #  facet_wrap(~ country, scales = "free", nrow = 2) +
   # facet_wrap(~ segment , scales = "free") +
-  scale_fill_manual(values = c("Political Actors" = "salmon","Trade Associations" = "seagreen",
-                               "Trade Unions" = "steelblue")) +
+  scale_fill_manual(values = c("Political Actors" = "red","Trade Associations" = "limegreen",
+                               "Trade Unions" = "purple")) +
   guides(fill="none") + 
   theme_bw() +
-  theme(axis.title.y = element_blank(), plot.margin = unit(c(0.2,0.3,0.2,0.2), "cm"))
+  theme(axis.title.y = element_blank(), 
+        plot.margin = unit(c(0.2,0.3,0.2,0.2), "cm"),
+        axis.text.x = element_text(size = 10))
 
 
 itall <- df_20_22 %>% filter(country == "Italy") %>% 
@@ -395,15 +414,21 @@ itall <- df_20_22 %>% filter(country == "Italy") %>%
                         "TA" = "Trade\nAssociations",
                         "TU" = "Trade\nUnions")) %>%
   ggplot(aes(x = fct_rev(fct_infreq(actor)), fill = actor)) + geom_bar() +
-  geom_text(aes(label = ..count..), stat = "count", vjust = 0,hjust = 1) +
+  geom_text(aes(label = ..count..), stat = "count", vjust = 0,hjust = 1, size  = 5) +
   xlab("count tweets") +
   coord_flip() +
   facet_wrap(~ country, scales = "free", nrow = 2) +
-  scale_fill_manual(values = c("Political\nActors" = "salmon","Trade\nAssociations" = "seagreen",
-                               "Trade\nUnions" = "steelblue")) +
+  scale_fill_manual(values = c("Political\nActors" = "red","Trade\nAssociations" = "limegreen",
+                               "Trade\nUnions" = "purple")) +
   guides(fill="none") + 
   theme_bw() +
-  theme(axis.title.y = element_blank())
+  theme(strip.background = element_rect(fill="beige"),
+        axis.title.y = element_blank(),
+        axis.text.y = element_text(size = 12),
+        axis.text.x = element_text(size =10),
+        strip.text.x = element_text(size = 12)
+  )
+
 
 
 
@@ -421,57 +446,101 @@ ittime <- df_20_22 %>% filter(country == "Italy") %>%
   xlab("date") +
 #  facet_wrap(~ country, scales = "free", nrow = 2) +
   # facet_wrap(~ segment , scales = "free") +
-  scale_fill_manual(values = c("Political Actors" = "salmon","Trade Associations" = "seagreen",
-                               "Trade Unions" = "steelblue")) +
+  scale_fill_manual(values = c("Political Actors" = "red","Trade Associations" = "limegreen",
+                               "Trade Unions" = "purple")) +
   guides(fill="none") + 
   theme_bw() +
-  theme(axis.title.y = element_blank(), plot.margin = unit(c(0.2,0.3,0.2,0.2), "cm"))
+  theme(axis.title.y = element_blank(), 
+        plot.margin = unit(c(0.2,0.3,0.2,0.2), "cm"),
+        axis.text.x = element_text(size = 10))
 
 
 ggpubr::ggarrange(deall,detime,itall,ittime,widths = c(0.5, 1))
 ggsave(paste0(folder,"figures/sampleNEW.jpg"),width = 13, height = 6)
 
 # Results: tf-idf ####
+library(stopwords)
+rem_it <- read_xls("keywords_cnt.xls",sheet = "rem_it")[,1]
+rem_de <- read_xls("keywords_cnt.xls",sheet = "rem_de")[,1]
 df <- df_20_22 %>% unnest_tokens(word, text, token = stringr::str_split, pattern = " ")
 df$word <- str_remove_all(df$word, "[^#_[:^punct:]]")
-df <- df %>% filter(!word %in% stop_words$word,
+
+# Germany
+
+dfDE <- df %>% filter(country == "Germany") %>% filter(!word %in% stop_words$word,
                                         !word %in% stopwords("en"), 
-                                        !word %in% stopwords_en,
-                                        !word %in% rem_dfm)
+#                                        !word %in% stopwords_en,
+                                        !word %in% rem_dfm$remove_list,
+                                        !word %in% rem_de$rem_de)
 
-df <- replace(df, df =='', NA)
-df <- df %>% drop_na(word)
+dfDE <- replace(dfDE, dfDE =='', NA)
+dfDE <- dfDE %>% drop_na(word)
 
-df <- df %>% filter(country == "Germany") %>%
+dfDE <- dfDE %>% # filter(country == "Germany") %>%
   filter(!word %in% c(it_policies,de_policies)) %>%
   count(country,actor, word,sort = TRUE)
 
-total_words <- df %>% 
-  group_by(country,actor) %>%
- # group_by(actor) %>%
+total_wordsDE <- dfDE %>% 
+ group_by(country,actor) %>%
+# group_by(actor) %>%
   summarize(total = sum(n))
 
-df <- left_join(df, total_words)
+dfDE <- left_join(dfDE, total_wordsDE)
 
- df$segment <- paste0(df$country,"_",df$actor) 
+ dfDE$segment <- paste0(dfDE$country,"_",dfDE$actor) 
 
-df_tf_idf <- df %>% bind_tf_idf(word,segment, n)
+df_tf_idfDE <- dfDE %>% bind_tf_idf(word,segment, n)
 
-df_tf_idf %>%  arrange(desc(tf_idf))
+# Italy
 
-df_tf_idfDE <- df_tf_idf
-df_tf_idfIT <- df_tf_idf
+dfIT <- df %>% filter(country == "Italy") %>% filter(!word %in% stop_words$word,
+                                                       !word %in% stopwords("en"), 
+                                                       #                                        !word %in% stopwords_en,
+                                                       !word %in% rem_dfm$remove_list,
+                                                       !word %in% rem_it$rem_it)
+
+dfIT <- replace(dfIT, dfIT =='', NA)
+dfIT <- dfIT %>% drop_na(word)
+
+dfIT <- dfIT %>% # filter(country == "Germany") %>%
+  filter(!word %in% c(it_policies,de_policies)) %>%
+  count(country,actor, word,sort = TRUE)
+
+total_wordsIT <- dfIT %>% 
+  group_by(country,actor) %>%
+  # group_by(actor) %>%
+  summarize(total = sum(n))
+
+dfIT <- left_join(dfIT, total_wordsIT)
+
+dfIT$segment <- paste0(dfIT$country,"_",dfIT$actor) 
+
+df_tf_idfIT <- dfIT %>% bind_tf_idf(word,segment, n)
+# df_tf_idfDE %>%  arrange(desc(tf_idf))
+
+#df_tf_idfDE <- df_tf_idf
+#df_tf_idfIT <- df_tf_idf
 
 df_tf_idf <- rbind(df_tf_idfDE,df_tf_idfIT) 
 df_tf_idf <- df_tf_idf %>% mutate(actor = recode(actor,
                                                  "POL" = "Political Actors",
                                                  "TA" = "Trade Associations",
-                                                 "TU" = "Trade Unions")) 
+                                                 "TU" = "Trade Unions")) %>%
+                          mutate(segment = recode(
+                            segment,
+                            "Germany_POL" = "Germany\nPolitical Actors",
+                            "Italy_POL" = "Italy\nPolitical Actors",
+                            "Germany_TA" = "Germany\nTrade Associations",
+                            "Italy_TA" = "Italy\nTrade Associations",    
+                            "Germany_TU" = "Germany\nTrade Unions",
+                            "Italy_TU" = "Italy\nTrade Unions",  
+                          ))
 
-df_tf_idf %>% # filter(country == "Italy") %>%
-  group_by(country, actor) %>% 
-#  group_by(segment) %>% 
-  slice_max(tf_idf, n = 8) %>%
+#df_tf_idf %>% # filter(country == "Italy") %>%
+df_tf_idf %>%
+  #  group_by(country, actor) %>% 
+  group_by(segment) %>% 
+  slice_max(tf_idf, n = 10) %>%
 # group_by(country,actor,tf_idf) %>% 
   filter(! word %in% c(it_policies,de_policies,rem_dfm,rem_char,
                        "corona_bonus","corona_special_payment")) %>%
@@ -479,17 +548,25 @@ df_tf_idf %>% # filter(country == "Italy") %>%
   ggplot(aes(x = reorder(word,tf_idf),y = tf_idf, fill = actor)) + 
   geom_col() +
   coord_flip() +
-  facet_wrap(~ country + actor, scales = "free") +
- # facet_wrap(~ segment , scales = "free") +
-  scale_fill_manual(values = c("Political Actors" = "salmon","Trade Associations" = "seagreen",
-                               "Trade Unions" = "steelblue")) +
+  scale_y_continuous(label = scales::percent) +
+#  facet_wrap(~ country + actor, scales = "free") +
+  # facet_wrap(~ factor(country,c("Germany","Italy")) + 
+  #              factor(actor,c("Political Actors","Trade Associations","Trade Unions")), scales = "free", nrow = 3) +
+ facet_wrap(~ factor(segment,c("Germany\nPolitical Actors","Italy\nPolitical Actors",
+                               "Germany\nTrade Associations","Italy\nTrade Associations",
+                               "Germany\nTrade Unions","Italy\nTrade Unions")),
+            scales = "free", nrow = 3) +
+  scale_fill_manual(values = c("Political Actors" = "red","Trade Associations" = "limegreen",
+                               "Trade Unions" = "purple")) +
   theme_light() +
   theme(strip.background = element_rect(fill="beige"), 
-        strip.text = element_text(color = "black",size = 12),
+        strip.text = element_text(color = "black",size = 13),
         axis.title.y = element_blank(),
-        axis.title.x = element_blank()) +
+        axis.title.x = element_blank(),
+        axis.text.y = element_text(size=13),
+        axis.text.x = element_text(size=11)) +
   guides(fill = FALSE)
-ggsave(file=paste0(folder,"figures/tfidf.jpg"),width = 10,height = 6)
+ggsave(file=paste0(folder,"figures/tfidf.jpg"),width = 10, height = 10.5)
 
 
 # Results: Topic extraction ####
@@ -732,10 +809,11 @@ df <- rbind(DE_gammaterms,IT_gammaterms)
 
 # Germany
 #tpde <- # df %>% filter(country == "Germany") %>%
+load(paste0(folder,"DE/DE_gammaterms.Rdata"))
 tpde <-  DE_gammaterms %>%
  ggplot(aes(reorder(label,gamma), gamma, fill = as.factor(labelcol))) + #, fill = policy) + 
  # ggplot(aes(reorder(topic,gamma), gamma)) + #, fill = policy)) + 
- geom_col(color = "black", width=.4) +
+ geom_col(color = "black") + #, width=.4
   geom_text(aes(label = terms ), hjust = 0, y = 0.001, size = 9,# nudge_y = 0.00005, size = 5, # 0.0005
             family = "IBMPlexSans") +
   coord_flip() +
@@ -756,20 +834,23 @@ facet_wrap(~ country , scales = "free", dir = "v") +
                                  "24" = "tan1",
                                  "0" = "white")) +
   theme_bw() +
-    theme(axis.title.x = element_text(size = 20),
-          axis.text.x = element_text(size = 18),
-      axis.text.y = element_text(size = 25),
+    theme(axis.title.x = element_text(size = 22),
+          axis.text.x = element_text(size = 19),
+      axis.text.y = element_text(size = 24),
          # legend.text = element_text(size=12),
           strip.background = element_rect(fill="beige"), 
-          strip.text.x = element_text(color = "black",size = 25)) +
+          strip.text.x = element_text(color = "black",size = 26),
+      plot.margin = unit(c(0.2, 0.37, 0.2, 0.2), 
+                         "inches")) +
     guides(fill = "none")
 save(tpde,file = paste0(folder,"DE/tpde.Rdata"))
 
 # Italy
 # tpit <- df %>% filter(country == "Italy") %>%
+load(paste0(folder,"IT/IT_gammaterms.Rdata"))
 tpit <- IT_gammaterms %>% 
   ggplot(aes(reorder(label,gamma), gamma, fill = as.factor(labelcol))) + #, fill = policy) + 
-  geom_col(color = "black", width=.4) +
+  geom_col(color = "black") + # , width=.4
   geom_text(aes(label = terms ), hjust = 0, y = 0.001, size = 9,# nudge_y = 0.00005, size = 5, # 0.0005
             family = "IBMPlexSans") +
   coord_flip() +
@@ -794,12 +875,14 @@ tpit <- IT_gammaterms %>%
                               "19" = "tan1",
                               "0" = "white")) +
   theme_bw() +
-  theme(axis.title.x = element_text(size = 20),
-        axis.text.x = element_text(size = 18),
-        axis.text.y = element_text(size = 25),
+  theme(axis.title.x = element_text(size = 22),
+        axis.text.x = element_text(size = 19),
+        axis.text.y = element_text(size = 24),
         # legend.text = element_text(size=12),
         strip.background = element_rect(fill="beige"), 
-        strip.text.x = element_text(color = "black",size = 25)) +
+        strip.text.x = element_text(color = "black",size = 26),
+        plot.margin = unit(c(0.2, 0.37, 0.2, 0.2), 
+                           "inches")) +
   guides(fill = "none")
 save(tpit,file = paste0(folder,"IT/tpit.Rdata"))
 
@@ -1304,6 +1387,7 @@ save(prepDE,file=paste0(folder,"DE/prepDE.Rdata"))
  
 # load(paste0(folder,"DE/prepDE.R"))
 
+load(paste0(folder,"DE/prepDE.Rdata"))
 effects_intDE <- get_effects(estimates = prepDE,
                            variable = 'datenum',
                            type = 'continuous',
@@ -1355,15 +1439,18 @@ depl <- effects_intDE %>%  filter(topic %in% c(2,13,20,19,5,9,8,24)) %>%
                      name = "Topic") +
   facet_wrap(~ moderator, scales = "free_y", nrow = 3) +
   theme_light() +
-  theme(axis.text.x = element_text(vjust = 0.6,angle=45, size = 12), axis.title.x = element_blank(),
-        axis.text.y = element_text(size =  12), 
-        axis.title.y = element_text(size =  13),
+  theme(axis.text.x = element_text(vjust = 0.6,angle=45, size = 16), axis.title.x = element_blank(),
+        axis.text.y = element_text(size =  14), 
+        axis.title.y = element_text(size =  16),
         strip.background = element_rect(fill="beige"), 
-        strip.text = element_text(color = "black",size = 17.5),
-        legend.position = "none")
+        strip.text = element_text(color = "black",size = 21),
+        legend.position = "none",
+        plot.margin = unit(c(0.15, 0.15, 0.15, 0.15), 
+                           "inches")
+        )
 
 
-
+load(paste0(folder,"DE/DE_gamma_termsact.Rdata"))
 trdeac <- DE_gamma_termsact %>% # ggplot(aes(-rank, gamma, label = terms, fill = country)) +
    filter(topic %in% c(2,13,20,19,5,9,8,24)) %>%
    ggplot(aes(x = reorder_within(topic,gamma,actor), y = gamma, 
@@ -1397,21 +1484,24 @@ trdeac <- DE_gamma_termsact %>% # ggplot(aes(-rank, gamma, label = terms, fill =
   # theme_tufte(base_family = "IBMPlexSans", ticks = FALSE) +
   theme_light() +
   theme( strip.background = element_rect(fill="beige"), 
-         strip.text = element_text(color = "black",size = 18),
-        plot.subtitle = element_text(size = 15),
-        axis.text.x = element_text(size = 12),
-        axis.text.y = element_text(size = 12),
-        axis.title.x = element_text(size = 13),
+         strip.text = element_text(color = "black",size = 19),
+        plot.subtitle = element_text(size = 18),
+        axis.text.x = element_text(size = 16),
+        axis.text.y = element_text(size = 16),
+        axis.title.x = element_text(size = 17),
         legend.position="bottom",
-        legend.text = element_text(size = 14),
-        legend.title = element_text(size = 15)) +
+        legend.text = element_text(size = 17),
+        legend.title = element_text(size = 20),
+        plot.margin = unit(c(0.15, 0.15, 0.15, 0.15), 
+                           "inches")
+        ) +
   guides(fill = guide_legend(nrow = 2)) +
   labs(x = NULL, y = "Topic Proportion")
 
 deintpl<- ggarrange(trdeac,depl, ncol = 2, widths = c(1.4,1))
 deintpl <- annotate_figure(deintpl, top = text_grob("Germany", 
-                                                    color = "black", face = "bold", size = 20))
-ggsave(deintpl, file = paste0(folder,"figures/actDE.jpg"),width = 18, height = 11)
+                                                    color = "black", face = "bold", size = 23))
+ggsave(deintpl, file = paste0(folder,"figures/actDE.jpg"),width = 19, height = 13)
 
 # Italy
 
@@ -1489,7 +1579,7 @@ IT_gamma_termsact <- IT_gamma_termsact %>% mutate(country = "Italy")
 
 # save(IT_gamma_termsact, file = paste0(folder,"IT/IT_gamma_termsact.Rdata"))
 
-
+load(paste0(folder,"IT/IT_gamma_termsact.Rdata"))
 tritac <- IT_gamma_termsact %>% # ggplot(aes(-rank, gamma, label = terms, fill = country)) +
    filter(topic %in% c(5,10,2,15,20,9,24,19)) %>%
   ggplot(aes(x = reorder_within(topic,gamma,actor), y = gamma, 
@@ -1523,22 +1613,27 @@ tritac <- IT_gamma_termsact %>% # ggplot(aes(-rank, gamma, label = terms, fill =
   # theme_tufte(base_family = "IBMPlexSans", ticks = FALSE) +
   theme_light() +
   theme( strip.background = element_rect(fill="beige"), 
-         strip.text = element_text(color = "black",size = 18),
-         plot.subtitle = element_text(size = 15),
-         axis.text.x = element_text(size = 12),
-         axis.text.y = element_text(size = 12),
-         axis.title.x = element_text(size = 13),
+         strip.text = element_text(color = "black",size = 19),
+         plot.subtitle = element_text(size = 18),
+         axis.text.x = element_text(size = 16),
+         axis.text.y = element_text(size = 16),
+         axis.title.x = element_text(size = 17),
          legend.position="bottom",
-         legend.text = element_text(size = 13),
-         legend.title = element_text(size = 14)) +
-  guides(fill = guide_legend(nrow = 2)) +
+         legend.text = element_text(size = 17),
+         legend.title = element_text(size = 20),
+         plot.margin = unit(c(0.15, 0.4, 0.15, 0.15), 
+                            "inches")
+  ) +
+  guides(fill = guide_legend(nrow = 3)) +
   labs(x = NULL, y = "Topic Proportion")
 
 # Interaction estimate
 
+
 prepIT <- estimateEffect(1:numm ~ actor * s(datenum), stm_m, metadata = stm_df$meta, uncertainty = "Global")
 save(prepIT,file=paste0(folder,"IT/prepIT.Rdata"))
 
+load(paste0(folder,"IT/prepIT.Rdata"))
 effects_intIT <- get_effects(estimates = prepIT,
                              variable = 'datenum',
                              type = 'continuous',
@@ -1596,17 +1691,20 @@ itpl <- effects_intIT %>%  filter(topic %in% c(5,10,2,15,20,9,24,19)) %>%
                     name = "Topic") +
   facet_wrap(~ moderator, scales = "free_y", nrow = 3) +
   theme_light() +
-  theme(axis.text.x = element_text(vjust = 0.6,angle=45, size = 12), axis.title.x = element_blank(),
-        axis.text.y = element_text(size =  12), 
-        axis.title.y = element_text(size =  13),
-        strip.background = element_rect(fill="beige"),
-        strip.text = element_text(color = "black",size = 17.5),
-        legend.position = "none")
+  theme(axis.text.x = element_text(vjust = 0.6,angle=45, size = 16), axis.title.x = element_blank(),
+        axis.text.y = element_text(size =  14), 
+        axis.title.y = element_text(size =  16),
+        strip.background = element_rect(fill="beige"), 
+        strip.text = element_text(color = "black",size = 21),
+        legend.position = "none",
+        plot.margin = unit(c(0.15, 0.15, 0.15, 0.15), 
+                           "inches")
+  )
 
 itintpl <- ggarrange(tritac,itpl, ncol = 2, widths = c(1.4,1))
 itintpl <- annotate_figure(itintpl, top = text_grob("Italy", 
-                                      color = "black", face = "bold", size = 20))
-ggsave(itintpl, file = paste0(folder,"figures/actIT.jpg"),width = 18, height = 11)
+                                      color = "black", face = "bold", size = 23))
+ggsave(itintpl, file = paste0(folder,"figures/actIT.jpg"), width = 19, height = 13)
  
 # Results: wordfish ####
 # 
@@ -1773,6 +1871,7 @@ numm <- 25
 prepITmain <- estimateEffect(1:numm ~ actor * s(datenum), stm_it25, metadata = stm_df_it$meta, uncertainty = "Global")
 save(prepITmain,file=paste0(folder,"IT/prepITmain.Rdata"))
 
+load(paste0(folder,"IT/prepITmain.Rdata"))
 effects_IT <- get_effects(estimates = prepITmain,
                              variable = 'datenum',
                              type = 'continuous')
@@ -1804,7 +1903,7 @@ ggsave(pl,file = paste0(folder,"IT/IT25/",titleplot,"main_",i,".jpg"))
 
 mina_itpl <- effects_IT %>% filter(topic %in% c(5,10,2,15,20,9,24,19)) %>%
   ggplot(aes(x = value, y = proportion, color = as.factor(topic))) +
-  geom_line() +
+  geom_line(linewidth=1.1) +
   # geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2)  +
   scale_x_continuous(breaks = c(18322,18414,18628,18841,18993,19250,19357),
                      labels = c("18322" = "MAR 2020","18414" = "JUN 2020","18628" = "JAN 2021","18841" = "AUG 2021",
@@ -1830,10 +1929,10 @@ mina_itpl <- effects_IT %>% filter(topic %in% c(5,10,2,15,20,9,24,19)) %>%
                     name = "Topic") +
                     
   theme_light() +
-  theme(axis.text.x = element_text(vjust = 0.6,angle=45, size = 20), 
+  theme(axis.text.x = element_text(vjust = 0.6,angle=45, size = 21), 
         axis.title.x = element_blank(),
-        axis.text.y = element_text(size = 20),
-        axis.title.y = element_text(size = 20),
+        axis.text.y = element_text(size = 21),
+        axis.title.y = element_text(size = 22),
         strip.background = element_rect(fill="beige"), 
         strip.text = element_text(color = "black",size = 12),
         legend.position = "bottom") +
@@ -1851,6 +1950,7 @@ numm <- 25
 prepDEmain <- estimateEffect(1:numm ~ actor * s(datenum), stm_de25, metadata = stm_df_de$meta, uncertainty = "Global")
 save(prepDEmain,file=paste0(folder,"DE/prepDEmain.Rdata"))
 
+load(paste0(folder,"DE/prepDEmain.Rdata"))
 effects_DE <- get_effects(estimates = prepDEmain,
                           variable = 'datenum',
                           type = 'continuous')
@@ -1858,7 +1958,7 @@ effects_DE <- get_effects(estimates = prepDEmain,
 
 mina_depl <- effects_DE %>% filter(topic %in% c(2,13,20,19,5,9,8,24)) %>%
   ggplot(aes(x = value, y = proportion, color = as.factor(topic))) +
-  geom_line() +
+  geom_line(linewidth=1.1) +
   # geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2)  +
   scale_x_continuous(breaks = c(18322,18414,18628,18841,18993,19250,19357),
                      labels = c("18322" = "MAR 2020","18414" = "JUN 2020","18628" = "JAN 2021","18841" = "AUG 2021",
@@ -1883,10 +1983,10 @@ mina_depl <- effects_DE %>% filter(topic %in% c(2,13,20,19,5,9,8,24)) %>%
                                "24" = "Gender equality"),
                     name = "Topic") +
   theme_light() +
-  theme(axis.text.x = element_text(vjust = 0.6,angle=45, size = 20), 
+  theme(axis.text.x = element_text(vjust = 0.6,angle=45, size = 21), 
         axis.title.x = element_blank(),
-        axis.text.y = element_text(size = 20),
-        axis.title.y = element_text(size = 20),
+        axis.text.y = element_text(size = 21),
+        axis.title.y = element_text(size = 22),
         strip.background = element_rect(fill="beige"), 
         strip.text = element_text(color = "black",size = 12),
         legend.position = "bottom") +
@@ -1896,7 +1996,7 @@ ggsave(file=paste0(folder,"DE/DE25/main_de.jpg"),width = 10,height = 6)
 
 ggarrange(tpde,tpit,mina_depl,mina_itpl,nrow=2,ncol =2, heights = c(3,1), widths = c(1.1,1))
 # ggarrange(tpde,tpit,mina_depl,mina_itpl,nrow=2,ncol =2, widths = c(2.5,1))
-ggsave(paste0(folder,"figures/topicgen.jpg"), width = 32, heigh = 22)
+ggsave(paste0(folder,"figures/topicgen.jpg"), width = 33, heigh = 28)
 
 
 # FREX
