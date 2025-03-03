@@ -366,7 +366,7 @@ library(forcats)
 
 deall <-  df_20_22 %>% filter(country == "Germany") %>% 
   mutate(actor = recode(actor,
-                            "POL" = "Political\nActors",
+                            "POL" = "Government",
                             "TA" = "Trade\nAssociations",
                             "TU" = "Trade\nUnions")) %>%
 ggplot(aes(x = fct_rev(fct_infreq(actor)), fill = actor)) + geom_bar() +
@@ -374,7 +374,7 @@ ggplot(aes(x = fct_rev(fct_infreq(actor)), fill = actor)) + geom_bar() +
   xlab("count tweets") +
   coord_flip() +
   facet_wrap(~ country, scales = "free", nrow = 2) +
-  scale_fill_manual(values = c("Political\nActors" = "red","Trade\nAssociations" = "limegreen",
+  scale_fill_manual(values = c("Government" = "red","Trade\nAssociations" = "limegreen",
                                "Trade\nUnions" = "purple")) +
   guides(fill="none") + 
   theme_bw() +
@@ -388,7 +388,7 @@ ggplot(aes(x = fct_rev(fct_infreq(actor)), fill = actor)) + geom_bar() +
   
 detime <- df_20_22 %>% filter(country == "Germany") %>% 
   mutate(actor = recode(actor,
-                                   "POL" = "Political Actors",
+                                   "POL" = "Government",
                                    "TA" = "Trade Associations",
                                    "TU" = "Trade Unions")) %>%
   ggplot(aes(x = monthyear, fill = actor)) + 
@@ -399,7 +399,7 @@ detime <- df_20_22 %>% filter(country == "Germany") %>%
   xlab("date") +
 #  facet_wrap(~ country, scales = "free", nrow = 2) +
   # facet_wrap(~ segment , scales = "free") +
-  scale_fill_manual(values = c("Political Actors" = "red","Trade Associations" = "limegreen",
+  scale_fill_manual(values = c("Government" = "red","Trade Associations" = "limegreen",
                                "Trade Unions" = "purple")) +
   guides(fill="none") + 
   theme_bw() +
@@ -410,7 +410,7 @@ detime <- df_20_22 %>% filter(country == "Germany") %>%
 
 itall <- df_20_22 %>% filter(country == "Italy") %>% 
   mutate(actor = recode(actor,
-                        "POL" = "Political\nActors",
+                        "POL" = "Government",
                         "TA" = "Trade\nAssociations",
                         "TU" = "Trade\nUnions")) %>%
   ggplot(aes(x = fct_rev(fct_infreq(actor)), fill = actor)) + geom_bar() +
@@ -418,7 +418,7 @@ itall <- df_20_22 %>% filter(country == "Italy") %>%
   xlab("count tweets") +
   coord_flip() +
   facet_wrap(~ country, scales = "free", nrow = 2) +
-  scale_fill_manual(values = c("Political\nActors" = "red","Trade\nAssociations" = "limegreen",
+  scale_fill_manual(values = c("Government" = "red","Trade\nAssociations" = "limegreen",
                                "Trade\nUnions" = "purple")) +
   guides(fill="none") + 
   theme_bw() +
@@ -435,7 +435,7 @@ itall <- df_20_22 %>% filter(country == "Italy") %>%
 
 ittime <- df_20_22 %>% filter(country == "Italy") %>% 
   mutate(actor = recode(actor,
-                        "POL" = "Political Actors",
+                        "POL" = "Government",
                         "TA" = "Trade Associations",
                         "TU" = "Trade Unions")) %>%
   ggplot(aes(x = monthyear, fill = actor)) + 
@@ -446,7 +446,7 @@ ittime <- df_20_22 %>% filter(country == "Italy") %>%
   xlab("date") +
 #  facet_wrap(~ country, scales = "free", nrow = 2) +
   # facet_wrap(~ segment , scales = "free") +
-  scale_fill_manual(values = c("Political Actors" = "red","Trade Associations" = "limegreen",
+  scale_fill_manual(values = c("Government" = "red","Trade Associations" = "limegreen",
                                "Trade Unions" = "purple")) +
   guides(fill="none") + 
   theme_bw() +
@@ -523,13 +523,13 @@ df_tf_idfIT <- dfIT %>% bind_tf_idf(word,segment, n)
 
 df_tf_idf <- rbind(df_tf_idfDE,df_tf_idfIT) 
 df_tf_idf <- df_tf_idf %>% mutate(actor = recode(actor,
-                                                 "POL" = "Political Actors",
+                                                 "POL" = "Government",
                                                  "TA" = "Trade Associations",
                                                  "TU" = "Trade Unions")) %>%
                           mutate(segment = recode(
                             segment,
-                            "Germany_POL" = "Germany\nPolitical Actors",
-                            "Italy_POL" = "Italy\nPolitical Actors",
+                            "Germany_POL" = "Germany\nGovernment",
+                            "Italy_POL" = "Italy\nGovernment",
                             "Germany_TA" = "Germany\nTrade Associations",
                             "Italy_TA" = "Italy\nTrade Associations",    
                             "Germany_TU" = "Germany\nTrade Unions",
@@ -552,11 +552,11 @@ df_tf_idf %>%
 #  facet_wrap(~ country + actor, scales = "free") +
   # facet_wrap(~ factor(country,c("Germany","Italy")) + 
   #              factor(actor,c("Political Actors","Trade Associations","Trade Unions")), scales = "free", nrow = 3) +
- facet_wrap(~ factor(segment,c("Germany\nPolitical Actors","Italy\nPolitical Actors",
+ facet_wrap(~ factor(segment,c("Germany\nGovernment","Italy\nGovernment",
                                "Germany\nTrade Associations","Italy\nTrade Associations",
                                "Germany\nTrade Unions","Italy\nTrade Unions")),
             scales = "free", nrow = 3) +
-  scale_fill_manual(values = c("Political Actors" = "red","Trade Associations" = "limegreen",
+  scale_fill_manual(values = c("Government" = "red","Trade Associations" = "limegreen",
                                "Trade Unions" = "purple")) +
   theme_light() +
   theme(strip.background = element_rect(fill="beige"), 
@@ -667,7 +667,7 @@ IT_gammaterms <- gamma_terms
                                                            "2" = "2 Pnrr\nInvestments"  , #, "transitions",
                                                            "3" = "3 Funds\nAllocations", #*
                                                            "4" = "4 Dc\nRelaunch", # "life\nquality",
-                                                           "5" = "5 Emergency\nCompany"  , #"emergency\naid", # companies
+                                                           "5" = "5 Emergency\nCompanies"  , #"emergency\naid", # companies
                                                            "6" = "6 Liquidity",
                                                            "7" = "7 Agribusiness", # "agribusiness" , # "dc\naugust",
                                                            "8" = "8 Tourism", # agorarai
@@ -1412,7 +1412,7 @@ effects_intDE <- get_effects(estimates = prepDE,
 
 effects_intDE <- effects_intDE %>%
   mutate(moderator = recode(moderator,
-                            "POL" = "Political Actors",
+                            "POL" = "Government",
                             "TA" = "Trade Associations",
                             "TU" = "Trade Unions"))
 
@@ -1452,6 +1452,10 @@ depl <- effects_intDE %>%  filter(topic %in% c(2,13,20,19,5,9,8,24)) %>%
 
 load(paste0(folder,"DE/DE_gamma_termsact.Rdata"))
 trdeac <- DE_gamma_termsact %>% # ggplot(aes(-rank, gamma, label = terms, fill = country)) +
+  mutate(actor = recode(actor,
+                        "Political Actors" = "Government",
+                        "Trade Associations" = "Trade Associations",
+                        "Trade Unions" = "Trade Unions")) %>%
    filter(topic %in% c(2,13,20,19,5,9,8,24)) %>%
    ggplot(aes(x = reorder_within(topic,gamma,actor), y = gamma, 
               fill = as.factor(topic))) +
@@ -1514,7 +1518,7 @@ IT_gamma_termsact <- IT_gamma_termsact %>% mutate(label = recode(topic,
                                                                  "2" = "2 Pnrr\nInvestments"  , #, "transitions",
                                                                  "3" = "3 Funds\nAllocations", #*
                                                                  "4" = "4 Dc\nRelaunch", # "life\nquality",
-                                                                 "5" = "5 Emergency\nCompany"  , #"emergency\naid", # companies
+                                                                 "5" = "5 Emergency\nCompanies"  , #"emergency\naid", # companies
                                                                  "6" = "6 Liquidity",
                                                                  "7" = "7 Agribusiness", # "agribusiness" , # "dc\naugust",
                                                                  "8" = "8 Tourism", # agorarai
@@ -1581,6 +1585,10 @@ IT_gamma_termsact <- IT_gamma_termsact %>% mutate(country = "Italy")
 
 load(paste0(folder,"IT/IT_gamma_termsact.Rdata"))
 tritac <- IT_gamma_termsact %>% # ggplot(aes(-rank, gamma, label = terms, fill = country)) +
+  mutate(actor = recode(actor,
+                        "Political Actors" = "Government",
+                        "Trade Associations" = "Trade Associations",
+                        "Trade Unions" = "Trade Unions")) %>%
    filter(topic %in% c(5,10,2,15,20,9,24,19)) %>%
   ggplot(aes(x = reorder_within(topic,gamma,actor), y = gamma, 
              fill = as.factor(topic))) +
@@ -1658,7 +1666,7 @@ effects_intIT <- get_effects(estimates = prepIT,
 
 effects_intIT <- effects_intIT %>%
   mutate(moderator = recode(moderator,
-                            "POL" = "Political Actors",
+                            "POL" = "Government",
                             "TA" = "Trade Associations",
                             "TU" = "Trade Unions"))
 
