@@ -548,7 +548,8 @@ df_tf_idf %>%
   ggplot(aes(x = reorder(word,tf_idf),y = tf_idf, fill = actor)) + 
   geom_col() +
   coord_flip() +
-  scale_y_continuous(label = scales::percent) +
+  scale_y_continuous(labels = scales::label_percent(accuracy = 0.01, trim = FALSE)) + 
+#  scale_y_continuous(label = scales::percent(accuracy = 0.01)) +
 #  facet_wrap(~ country + actor, scales = "free") +
   # facet_wrap(~ factor(country,c("Germany","Italy")) + 
   #              factor(actor,c("Political Actors","Trade Associations","Trade Unions")), scales = "free", nrow = 3) +
@@ -566,7 +567,7 @@ df_tf_idf %>%
         axis.text.y = element_text(size=13),
         axis.text.x = element_text(size=11)) +
   guides(fill = FALSE)
-ggsave(file=paste0(folder,"figures/tfidf.jpg"),width = 10, height = 10.5)
+ggsave(file=paste0(folder,"figures/tfidf.jpg"),width = 14.5, height = 14)
 
 
 # Results: Topic extraction ####
@@ -814,7 +815,7 @@ tpde <-  DE_gammaterms %>%
  ggplot(aes(reorder(label,gamma), gamma, fill = as.factor(labelcol))) + #, fill = policy) + 
  # ggplot(aes(reorder(topic,gamma), gamma)) + #, fill = policy)) + 
  geom_col(color = "black") + #, width=.4
-  geom_text(aes(label = terms ), hjust = 0, y = 0.001, size = 9,# nudge_y = 0.00005, size = 5, # 0.0005
+  geom_text(aes(label = terms ), hjust = 0, y = 0.001, size = 8.5,# nudge_y = 0.00005, size = 5, # 0.0005
             family = "IBMPlexSans") +
   coord_flip() +
   scale_y_continuous(expand = c(0,0),
@@ -834,7 +835,7 @@ facet_wrap(~ country , scales = "free", dir = "v") +
                                  "24" = "tan1",
                                  "0" = "white")) +
   theme_bw() +
-    theme(axis.title.x = element_text(size = 22),
+    theme(axis.title.x = element_text(size = 24),
           axis.text.x = element_text(size = 19),
       axis.text.y = element_text(size = 24),
          # legend.text = element_text(size=12),
@@ -851,7 +852,7 @@ load(paste0(folder,"IT/IT_gammaterms.Rdata"))
 tpit <- IT_gammaterms %>% 
   ggplot(aes(reorder(label,gamma), gamma, fill = as.factor(labelcol))) + #, fill = policy) + 
   geom_col(color = "black") + # , width=.4
-  geom_text(aes(label = terms ), hjust = 0, y = 0.001, size = 9,# nudge_y = 0.00005, size = 5, # 0.0005
+  geom_text(aes(label = terms ), hjust = 0, y = 0.001, size = 8.5,# nudge_y = 0.00005, size = 5, # 0.0005
             family = "IBMPlexSans") +
   coord_flip() +
   scale_y_continuous(expand = c(0,0),
@@ -875,7 +876,7 @@ tpit <- IT_gammaterms %>%
                               "19" = "tan1",
                               "0" = "white")) +
   theme_bw() +
-  theme(axis.title.x = element_text(size = 22),
+  theme(axis.title.x = element_text(size = 24),
         axis.text.x = element_text(size = 19),
         axis.text.y = element_text(size = 24),
         # legend.text = element_text(size=12),
@@ -2001,10 +2002,14 @@ mina_depl <- effects_DE %>% filter(topic %in% c(2,13,20,19,5,9,8,24)) %>%
   guides(color = "none")
 ggsave(file=paste0(folder,"DE/DE25/main_de.jpg"),width = 10,height = 6)
 
-
-ggarrange(tpde,tpit,mina_depl,mina_itpl,nrow=2,ncol =2, heights = c(3,1), widths = c(1.1,1))
+# ,mina_depl,mina_itpl nrow=2,
+ggarrange(tpde,tpit,mina_depl,mina_itpl, nrow=2,ncol =2, heights = c(3,0.8), widths = c(1.1,1))
 # ggarrange(tpde,tpit,mina_depl,mina_itpl,nrow=2,ncol =2, widths = c(2.5,1))
-ggsave(paste0(folder,"figures/topicgen.jpg"), width = 33, heigh = 28)
+ggsave(paste0(folder,"figures/topicgen.jpg"), width = 31, heigh = 26)
+
+
+
+
 
 
 # FREX
@@ -2018,3 +2023,17 @@ save(DE_gamma_termsact, file = paste0(folder,"DE/DE_gamma_termsact.Rdata"))
 frex_it <- read.csv(paste0(folder,"IT/frex_IT25_2.csv"),sep = ";")
 IT_gamma_termsact <- merge(IT_gamma_termsact,frex_it,by = c("topic", "actor" ))
 save(IT_gamma_termsact, file = paste0(folder,"IT/IT_gamma_termsact.Rdata"))
+
+# Image editing
+
+library(magick)
+
+# Load the image
+image_path <- paste0(folder,"figures/topicgen.jpg")  # Replace with your file path
+img <- image_read(image_path)
+
+# Resize to approximately 35 megapixels (7000 x 5000)
+img_resized <- image_resize(img, "7000x5000!")
+
+# Save the resized image
+image_write(img_resized, path = paste0(folder,"figures/6_topicgen_35MP.jpg"), format = "jpg")
