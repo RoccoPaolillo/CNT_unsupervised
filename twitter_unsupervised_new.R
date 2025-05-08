@@ -456,7 +456,7 @@ ittime <- df_20_22 %>% filter(country == "Italy") %>%
 
 
 ggpubr::ggarrange(deall,detime,itall,ittime,widths = c(0.5, 1))
-ggsave(paste0(folder,"figurestest/sampleNEW.jpg"),width = 13, height = 6)
+ggsave(paste0(folder,"figures/sampleNEW.jpg"),width = 13, height = 6)
 
 # Results: tf-idf ####
 library(stopwords)
@@ -567,7 +567,7 @@ df_tf_idf %>%
         axis.text.y = element_text(size=13),
         axis.text.x = element_text(size=11)) +
   guides(fill = FALSE)
-ggsave(file=paste0(folder,"figurestest/tfidf.jpg"),width = 14.5, height = 14)
+ggsave(file=paste0(folder,"figures/tfidf.jpg"),width = 14.5, height = 14)
 
 
 # Results: Topic extraction ####
@@ -1506,7 +1506,7 @@ trdeac <- DE_gamma_termsact %>% # ggplot(aes(-rank, gamma, label = terms, fill =
 deintpl<- ggarrange(trdeac,depl, ncol = 2, widths = c(1.4,1))
 deintpl <- annotate_figure(deintpl, top = text_grob("Germany", 
                                                     color = "black", face = "bold", size = 23))
-ggsave(deintpl, file = paste0(folder,"figurestest/actDE.jpg"),width = 19, height = 13)
+ggsave(deintpl, file = paste0(folder,"figures/actDE.jpg"),width = 19, height = 13)
 
 # Italy
 
@@ -1713,7 +1713,7 @@ itpl <- effects_intIT %>%  filter(topic %in% c(5,10,2,15,20,9,24,19)) %>%
 itintpl <- ggarrange(tritac,itpl, ncol = 2, widths = c(1.4,1))
 itintpl <- annotate_figure(itintpl, top = text_grob("Italy", 
                                       color = "black", face = "bold", size = 23))
-ggsave(itintpl, file = paste0(folder,"figurestest/actIT.jpg"), width = 19, height = 13)
+ggsave(itintpl, file = paste0(folder,"figures/actIT.jpg"), width = 19, height = 13)
  
 # Results: wordfish ####
 # 
@@ -2005,7 +2005,7 @@ ggsave(file=paste0(folder,"DE/DE25/main_de.jpg"),width = 10,height = 6)
 # ,mina_depl,mina_itpl nrow=2,
 ggarrange(tpde,tpit,mina_depl,mina_itpl, nrow=2,ncol =2, heights = c(3,0.8), widths = c(1.1,1))
 # ggarrange(tpde,tpit,mina_depl,mina_itpl,nrow=2,ncol =2, widths = c(2.5,1))
-ggsave(paste0(folder,"figurestest/topicgen.jpg"), width = 31, heigh = 26)
+ggsave(paste0(folder,"figures/topicgen.jpg"), width = 31, heigh = 26)
 
 
 
@@ -2029,11 +2029,11 @@ save(IT_gamma_termsact, file = paste0(folder,"IT/IT_gamma_termsact.Rdata"))
 library(magick)
 
 # Load the image
-image_path <- paste0(folder,"figurestest/topicgen.jpg")  # Replace with your file path
+image_path <- paste0(folder,"figures/topicgen.jpg")  # Replace with your file path
 img <- image_read(image_path)
 
 # Resize to approximately 35 megapixels (7000 x 5000)
 img_resized <- image_resize(img, "7000x5000!")
 
 # Save the resized image
-image_write(img_resized, path = paste0(folder,"figurestest/6_topicgen_35MP.jpg"), format = "jpg")
+image_write(img_resized, path = paste0(folder,"figures/6_topicgen_35MP.jpg"), format = "jpg")
